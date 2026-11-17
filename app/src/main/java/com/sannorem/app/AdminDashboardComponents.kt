@@ -72,11 +72,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -100,11 +102,12 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 
-// MODULE 4: COVERAGE SIMULATOR OPENSTREETMAP VIEW (ADMIN SIDE)
+// MODULE 4: COVERAGE SIMULATOR OPENSTREETMAP VIEW (ADMIN SIDE - STRICT PER-BRANCH VISUALIZATION)
 @Composable
 fun CoverageSimulatorMapView(
     branches: List<CoverageBranch>,
-    radiusMeters: Double
+    selectedBranchId: String? = null,
+    previewRadiusKm: Double? = null
 ) {
     val context = LocalContext.current
     val mapView = remember {
@@ -112,6 +115,21 @@ fun CoverageSimulatorMapView(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             isTilesScaledToDpi = true
+            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
+            // Prevent parent scroll container from intercepting pan/zoom gestures
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
+                }
+                false
+            }
+
             controller.setZoom(13.6)
             controller.setCenter(GeoPoint(14.0734, 120.6315))
         }
@@ -125,36 +143,103 @@ fun CoverageSimulatorMapView(
         }
     }
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { mapView },
-        update = { map ->
-            map.overlays.clear()
-
-            // Draw buffer circles around all active store pins
-            branches.forEach { branch ->
-                val circle = Polygon(map).apply {
-                    val center = GeoPoint(branch.lat, branch.lng)
-                    points = Polygon.pointsAsCircle(center, radiusMeters)
-                    val baseColor = branch.brand.hexColor.toInt()
-                    val fillColorInt = (0x32 shl 24) or (baseColor and 0x00FFFFFF)
-                    fillPaint.color = fillColorInt
-                    outlinePaint.color = baseColor
-                    outlinePaint.strokeWidth = 3f
-                }
-                map.overlays.add(circle)
-
-                val marker = Marker(map).apply {
-                    position = GeoPoint(branch.lat, branch.lng)
-                    title = branch.name
-                    snippet = "${branch.brand.label} · Radius: ${radiusMeters.toInt()}m"
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                }
-                map.overlays.add(marker)
-            }
-            map.postInvalidate()
+    // Auto-focus on selected branch when chosen by admin
+    LaunchedEffect(selectedBranchId) {
+        val target = branches.find { it.id == selectedBranchId }
+        if (target != null) {
+            mapView.controller.animateTo(GeoPoint(target.lat, target.lng), 14.8, 500L)
         }
-    )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { mapView },
+            update = { map ->
+                map.overlays.clear()
+
+                // Draw individual buffer circles around store pins (Strict Per-Branch constraint)
+                branches.forEach { branch ->
+                    val isSelected = branch.id == selectedBranchId
+                    val effectiveRadiusM = if (isSelected && previewRadiusKm != null) previewRadiusKm * 1000.0 else branch.radiusKm * 1000.0
+                    val circle = Polygon(map).apply {
+                        val center = GeoPoint(branch.lat, branch.lng)
+                        points = Polygon.pointsAsCircle(center, effectiveRadiusM)
+                        val baseColor = branch.brand.hexColor.toInt()
+                        val alpha = if (isSelected) 0x48 else 0x1E
+                        val fillColorInt = (alpha shl 24) or (baseColor and 0x00FFFFFF)
+                        fillPaint.color = fillColorInt
+                        outlinePaint.color = baseColor
+                        outlinePaint.strokeWidth = if (isSelected) 5f else 2.5f
+                    }
+                    map.overlays.add(circle)
+
+                    val marker = Marker(map).apply {
+                        position = GeoPoint(branch.lat, branch.lng)
+                        title = branch.name
+                        snippet = "${branch.brand.label} · Radius: ${effectiveRadiusM.toInt()}m"
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                    }
+                    map.overlays.add(marker)
+                }
+                map.postInvalidate()
+            }
+        )
+
+        // Overlay tactile zoom and center controls for smooth map navigation
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.White,
+                shadowElevation = 3.dp,
+                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                modifier = Modifier.size(34.dp)
+            ) {
+                IconButton(onClick = { mapView.controller.zoomIn(400L) }) {
+                    Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = Color(0xFF0084D6), modifier = Modifier.size(16.dp))
+                }
+            }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.White,
+                shadowElevation = 3.dp,
+                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                modifier = Modifier.size(34.dp)
+            ) {
+                IconButton(onClick = { mapView.controller.zoomOut(400L) }) {
+                    Text(
+                        text = "—",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF0084D6)
+                    )
+                }
+            }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.White,
+                shadowElevation = 3.dp,
+                border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                modifier = Modifier.size(34.dp)
+            ) {
+                IconButton(onClick = {
+                    val target = branches.find { it.id == selectedBranchId }
+                    if (target != null) {
+                        mapView.controller.animateTo(GeoPoint(target.lat, target.lng), 14.8, 400L)
+                    } else {
+                        mapView.controller.animateTo(GeoPoint(14.0734, 120.6315), 13.6, 400L)
+                    }
+                }) {
+                    Icon(Icons.Default.Storefront, contentDescription = "Focus Branch", tint = Color(0xFF0084D6), modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
 }
 
 // ======================================================================================
@@ -241,26 +326,29 @@ fun SanNoremAdminDashboard(
                         selectedTabIndex = selectedTab,
                         containerColor = Color.Transparent,
                         contentColor = Color(0xFF0084D6),
-                        edgePadding = 0.dp,
+                        edgePadding = 12.dp,
                         divider = {},
                         indicator = { tabPositions ->
-                            TabRowDefaults.SecondaryIndicator(
-                                Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                color = Color(0xFF0084D6),
-                                height = 3.dp
-                            )
+                            if (selectedTab < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                    color = Color(0xFF0084D6),
+                                    height = 3.dp
+                                )
+                            }
                         }
                     ) {
                         tabTitles.forEachIndexed { idx, title ->
                             Tab(
                                 selected = selectedTab == idx,
                                 onClick = { selectedTab = idx },
+                                modifier = Modifier.padding(horizontal = 6.dp),
                                 text = {
                                     Text(
                                         text = title,
                                         style = MaterialTheme.typography.labelMedium,
+                                        maxLines = 1,
                                         softWrap = false,
-                                        lineHeight = 16.sp,
                                         fontWeight = if (selectedTab == idx) FontWeight.ExtraBold else FontWeight.Medium,
                                         color = if (selectedTab == idx) Color.White else Color(0xFF94A3B8)
                                     )
@@ -820,21 +908,17 @@ fun AdminDemandRequestsTab() {
     }
 }
 
-// TAB 3: DYNAMIC SERVICE TAG MANAGER (MODULE 3 ADMIN)
+// TAB 3: DYNAMIC PER-BRANCH SERVICE & AMENITIES MANAGER (MODULE 3 ADMIN - STRICT PER-BRANCH RULE)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminServiceTagManagerTab() {
     val context = LocalContext.current
-    var newTagInput by remember { mutableStateOf("") }
-    val availableTags = CoverageDataStore.customServiceTags
     val activeBranches = CoverageDataStore.activeBranches
+    var selectedBranchId by remember { mutableStateOf(activeBranches.firstOrNull()?.id ?: "") }
+    var branchDropdownOpen by remember { mutableStateOf(false) }
+    var newAmenityInput by remember { mutableStateOf("") }
 
-    var selectedTagToManage by remember { mutableStateOf(availableTags.firstOrNull() ?: "Pharmacy Counter") }
-    val selectedBranchIds = remember(selectedTagToManage, activeBranches) {
-        mutableStateListOf<String>().apply {
-            addAll(activeBranches.filter { it.attrs.contains(selectedTagToManage) }.map { it.id })
-        }
-    }
+    val currentBranch = activeBranches.find { it.id == selectedBranchId } ?: activeBranches.firstOrNull()
 
     LazyColumn(
         modifier = Modifier
@@ -842,12 +926,13 @@ fun AdminServiceTagManagerTab() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Create new tag card
+        // Branch Selector Card (Enforcing Strict Per-Branch Management)
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -855,171 +940,378 @@ fun AdminServiceTagManagerTab() {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Create New Custom Service Tag",
+                        text = "Individual Store Management (Per-Branch Rule)",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF0F172A)
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Text(
+                        text = "All amenities and service indicators apply strictly and exclusively to the selected store branch ID.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B)
+                    )
+
+                    ExposedDropdownMenuBox(
+                        expanded = branchDropdownOpen,
+                        onExpandedChange = { branchDropdownOpen = !branchDropdownOpen },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
-                            value = newTagInput,
-                            onValueChange = { newTagInput = it },
-                            placeholder = { Text("e.g. Pharmacy Counter, Ice Cream, E-Load") },
-                            modifier = Modifier.weight(1f),
+                            value = currentBranch?.let { "${it.name} (${it.brand.label} · ${CoverageDataStore.getBarangayName(it.brgyId)})" } ?: "Select Branch",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Selected Branch ID") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = branchDropdownOpen) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             shape = RoundedCornerShape(10.dp)
                         )
-                        Button(
-                            onClick = {
-                                if (newTagInput.isNotBlank()) {
-                                    val success = CoverageDataStore.createCustomServiceTag(newTagInput)
-                                    if (success) {
-                                        selectedTagToManage = newTagInput.trim()
-                                        newTagInput = ""
-                                        Toast.makeText(context, "Tag created successfully!", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Tag already exists or invalid", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
-                            shape = RoundedCornerShape(10.dp)
+                        ExposedDropdownMenu(
+                            expanded = branchDropdownOpen,
+                            onDismissRequest = { branchDropdownOpen = false }
                         ) {
-                            Text("Add Tag", fontWeight = FontWeight.Bold, color = Color.White)
+                            activeBranches.forEach { b ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(b.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                            Text("${b.brand.label} · ${CoverageDataStore.getBarangayName(b.brgyId)} · Radius: ${b.radiusKm}km", fontSize = 10.sp, color = Color(0xFF64748B))
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedBranchId = b.id
+                                        branchDropdownOpen = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Manage & Bulk Assign
-        item {
-            Text(
-                text = "Select Tag to Bulk-Assign:",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F172A)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                availableTags.forEach { tag ->
-                    val isSel = selectedTagToManage == tag
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isSel) Color(0xFF0084D6) else Color(0xFFF1F5F9),
-                        border = BorderStroke(1.dp, if (isSel) Color(0xFF0084D6) else Color(0xFFCBD5E1)),
-                        modifier = Modifier.clickable {
-                            selectedTagToManage = tag
-                            selectedBranchIds.clear()
-                            selectedBranchIds.addAll(activeBranches.filter { it.attrs.contains(tag) }.map { it.id })
-                        }
+        if (currentBranch != null) {
+            // Section 1: Branch Specific Amenities & Custom Tags
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = tag,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            text = "Branch Amenities & Tags: ${currentBranch.name}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+
+                        // Current Tags on this Branch
+                        if (currentBranch.attrs.isEmpty()) {
+                            Text("No amenities assigned to this store.", style = MaterialTheme.typography.bodySmall, color = Color(0xFF64748B))
+                        } else {
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                currentBranch.attrs.forEach { tag ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFEFF6FF),
+                                        border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(tag, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF0084D6))
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "Remove tag",
+                                                tint = Color(0xFF64748B),
+                                                modifier = Modifier
+                                                    .size(14.dp)
+                                                    .clickable {
+                                                        CoverageDataStore.removeBranchAmenity(currentBranch.id, tag)
+                                                        Toast.makeText(context, "Removed '$tag' from ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                                    }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                        // Quick Add Popular Amenities to this Branch
+                        Text("Quick Add Amenity to this Store:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                        val popularTags = listOf("ATM", "GCash Cash-In", "Cliqq Kiosk", "Bills Payment", "Parking", "Pharmacy Counter", "Ice Cream", "E-Load", "Frozen Meat")
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            popularTags.forEach { pTag ->
+                                val alreadyHas = currentBranch.attrs.contains(pTag)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (alreadyHas) Color(0xFFF1F5F9) else Color.White,
+                                    border = BorderStroke(1.dp, if (alreadyHas) Color(0xFFCBD5E1) else Color(0xFF0084D6)),
+                                    modifier = Modifier.clickable(enabled = !alreadyHas) {
+                                        CoverageDataStore.addBranchAmenity(currentBranch.id, pTag)
+                                        Toast.makeText(context, "Added '$pTag' to ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        if (alreadyHas) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(12.dp))
+                                        } else {
+                                            Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0084D6), modifier = Modifier.size(12.dp))
+                                        }
+                                        Text(
+                                            pTag,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (alreadyHas) Color(0xFF64748B) else Color(0xFF0084D6),
+                                            fontWeight = if (alreadyHas) FontWeight.Normal else FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Custom Tag Input
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = newAmenityInput,
+                                onValueChange = { newAmenityInput = it },
+                                placeholder = { Text("Custom tag (e.g. WiFi, Drive-Thru)") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    if (newAmenityInput.isNotBlank()) {
+                                        CoverageDataStore.addBranchAmenity(currentBranch.id, newAmenityInput.trim())
+                                        CoverageDataStore.createCustomServiceTag(newAmenityInput.trim())
+                                        newAmenityInput = ""
+                                        Toast.makeText(context, "Added to ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Add", fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Section 2: Branch Specific Live Operational Service Statuses
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Live Service Statuses: ${currentBranch.name}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = "Only services explicitly activated here will appear on the customer app for this store ID.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+
+                        // Quick Activate Services for this Branch
+                        Text(
+                            text = "Activate Services for this Branch:",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSel) Color.White else Color(0xFF334155)
+                            color = Color(0xFF475569)
                         )
-                    }
-                }
-            }
-        }
+                        val standardServices = listOf("GCash Cash-In", "ATM", "Cliqq Kiosk", "Bills Payment", "Parking", "Frozen Meat", "Fresh Produce & Meat", "Ice Cream", "E-Load")
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            standardServices.forEach { sTag ->
+                                val isAssigned = currentBranch.servicesStatus.containsKey(sTag)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isAssigned) Color(0xFFDCFCE7) else Color.White,
+                                    border = BorderStroke(1.dp, if (isAssigned) Color(0xFF16A34A) else Color(0xFF0084D6)),
+                                    modifier = Modifier.clickable {
+                                        if (isAssigned) {
+                                            CoverageDataStore.removeBranchService(currentBranch.id, sTag)
+                                            Toast.makeText(context, "Deactivated '$sTag' on ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            CoverageDataStore.setBranchServiceStatus(currentBranch.id, sTag, ServiceState.WORKING)
+                                            Toast.makeText(context, "Activated '$sTag' on ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        if (isAssigned) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(12.dp))
+                                        } else {
+                                            Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0084D6), modifier = Modifier.size(12.dp))
+                                        }
+                                        Text(
+                                            sTag,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (isAssigned) Color(0xFF15803D) else Color(0xFF0084D6),
+                                            fontWeight = if (isAssigned) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
-        // Action row: Select All / Deselect All / Apply
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            selectedBranchIds.clear()
-                            selectedBranchIds.addAll(activeBranches.map { it.id })
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text("Select All", style = MaterialTheme.typography.labelSmall)
-                    }
-                    OutlinedButton(
-                        onClick = { selectedBranchIds.clear() },
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text("Deselect All", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
+                        HorizontalDivider(color = Color(0xFFF1F5F9))
 
-                Button(
-                    onClick = {
-                        CoverageDataStore.bulkAssignServiceTag(selectedTagToManage, selectedBranchIds.toSet())
-                        Toast.makeText(context, "Saved! '$selectedTagToManage' assigned to ${selectedBranchIds.size} branches.", Toast.LENGTH_SHORT).show()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Text("Save & Apply", fontWeight = FontWeight.Bold, color = Color.White, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
+                        val services = currentBranch.servicesStatus
 
-        // Branches Checklist
-        items(activeBranches, key = { it.id }) { branch ->
-            val isChecked = selectedBranchIds.contains(branch.id)
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color.White,
-                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        if (isChecked) selectedBranchIds.remove(branch.id) else selectedBranchIds.add(branch.id)
-                    }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Checkbox(
-                            checked = isChecked,
-                            onCheckedChange = {
-                                if (isChecked) selectedBranchIds.remove(branch.id) else selectedBranchIds.add(branch.id)
-                            },
-                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFF0084D6))
-                        )
-                        Column {
-                            Text(
-                                text = branch.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0F172A)
-                            )
-                            Text(
-                                text = "${branch.brand.label} · ${CoverageDataStore.getBarangayName(branch.brgyId)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 11.sp,
-                                color = Color(0xFF64748B)
-                            )
+                        if (services.isEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "No live services currently published for this store. Tap any service above to activate it for customer view.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF64748B),
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        } else {
+                            services.forEach { (sName, sStatus) ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFFF8FAFC),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(sName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                                IconButton(
+                                                    onClick = {
+                                                        CoverageDataStore.removeBranchService(currentBranch.id, sName)
+                                                        Toast.makeText(context, "Removed $sName from ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    modifier = Modifier.size(20.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Close, contentDescription = "Deactivate Service", tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp))
+                                                }
+                                            }
+                                            val (badgeBg, badgeCol) = when (sStatus.state) {
+                                                ServiceState.WORKING -> Color(0xFFDCFCE7) to Color(0xFF15803D)
+                                                ServiceState.BUSY -> Color(0xFFFFEDD5) to Color(0xFFC2410C)
+                                                ServiceState.OFFLINE -> Color(0xFFFEE2E2) to Color(0xFFB91C1C)
+                                            }
+                                            Surface(shape = RoundedCornerShape(6.dp), color = badgeBg) {
+                                                Text(
+                                                    sStatus.state.label,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = badgeCol
+                                                )
+                                            }
+                                        }
+
+                                        // 3 Toggle buttons
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Button(
+                                                onClick = {
+                                                    CoverageDataStore.setBranchServiceStatus(currentBranch.id, sName, ServiceState.WORKING)
+                                                    Toast.makeText(context, "$sName set to Working on ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                                shape = RoundedCornerShape(6.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Working", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            }
+                                            Button(
+                                                onClick = {
+                                                    CoverageDataStore.setBranchServiceStatus(currentBranch.id, sName, ServiceState.BUSY)
+                                                    Toast.makeText(context, "$sName set to Busy on ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C)),
+                                                shape = RoundedCornerShape(6.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Busy", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            }
+                                            Button(
+                                                onClick = {
+                                                    CoverageDataStore.setBranchServiceStatus(currentBranch.id, sName, ServiceState.OFFLINE)
+                                                    Toast.makeText(context, "$sName set to Offline on ${currentBranch.name}", Toast.LENGTH_SHORT).show()
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                                shape = RoundedCornerShape(6.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Offline", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1028,110 +1320,211 @@ fun AdminServiceTagManagerTab() {
     }
 }
 
-// TAB 4: COVERAGE SIMULATOR & DEAD ZONES (MODULE 4 ADMIN)
+// TAB 4: STRICT PER-BRANCH COVERAGE RADIUS SIMULATOR & EDITOR (MODULE 4 ADMIN)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminCoverageSimulatorTab() {
     val context = LocalContext.current
-    var radiusMeters by remember { mutableStateOf(500.0) }
+    val activeBranches = CoverageDataStore.activeBranches
+    var selectedBranchId by remember { mutableStateOf(activeBranches.firstOrNull()?.id ?: "") }
+    var branchDropdownOpen by remember { mutableStateOf(false) }
+
+    val selectedBranch = activeBranches.find { it.id == selectedBranchId } ?: activeBranches.firstOrNull()
+    var previewRadiusKm by remember(selectedBranch?.id) {
+        mutableDoubleStateOf(selectedBranch?.radiusKm ?: 1.0)
+    }
     var showCsvExportDialog by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Controls Surface
-        Surface(
-            shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
-            color = Color.White,
-            shadowElevation = 4.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Controls Card
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "Coverage & Dead Zone Simulator",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Text(
-                            text = "Buffer Zone Radius: ${radiusMeters.toInt()} meters",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0084D6)
-                        )
-                    }
-
-                    Button(
-                        onClick = { showCsvExportDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Analytics, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Export Summary", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                }
+                        Column {
+                            Text(
+                                text = "Individual Branch Coverage Radius",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = "Strict Per-Branch GIS Radius Constraint",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0084D6)
+                            )
+                        }
 
-                // Quick Radius Chips
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf(
-                        300.0 to "300m (5-Min Walk)",
-                        500.0 to "500m (Standard)",
-                        1000.0 to "1,000m (1 km Extended)"
-                    ).forEach { (r, label) ->
-                        val isSel = radiusMeters == r
-                        Surface(
+                        Button(
+                            onClick = { showCsvExportDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSel) Color(0xFF0084D6) else Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, if (isSel) Color(0xFF0084D6) else Color(0xFFCBD5E1)),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { radiusMeters = r }
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSel) Color.White else Color(0xFF475569)
+                            Icon(Icons.Default.Analytics, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Export CSV", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    // Branch Picker Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = branchDropdownOpen,
+                        onExpandedChange = { branchDropdownOpen = !branchDropdownOpen },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = selectedBranch?.let { "${it.name} (${it.brand.label} · ${CoverageDataStore.getBarangayName(it.brgyId)})" } ?: "Select Branch",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Select Branch to Edit Radius") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = branchDropdownOpen) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = branchDropdownOpen,
+                            onDismissRequest = { branchDropdownOpen = false }
+                        ) {
+                            activeBranches.forEach { b ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(b.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                            Text("${b.brand.label} · ${CoverageDataStore.getBarangayName(b.brgyId)} · Current: ${b.radiusKm} km", fontSize = 10.sp, color = Color(0xFF64748B))
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedBranchId = b.id
+                                        previewRadiusKm = b.radiusKm
+                                        branchDropdownOpen = false
+                                    }
                                 )
                             }
                         }
                     }
-                }
 
-                // Slider
-                Slider(
-                    value = radiusMeters.toFloat(),
-                    onValueChange = { radiusMeters = it.toDouble() },
-                    valueRange = 200f..2000f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFF0084D6),
-                        activeTrackColor = Color(0xFF0084D6)
+                    // Quick Radius Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            0.5 to "500m (Standard)",
+                            1.0 to "1.0 km (Town)",
+                            1.5 to "1.5 km (Highway)",
+                            2.0 to "2.0 km (Regional)"
+                        ).forEach { (r, label) ->
+                            val isSel = Math.abs(previewRadiusKm - r) < 0.05
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSel) Color(0xFF0084D6) else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, if (isSel) Color(0xFF0084D6) else Color(0xFFCBD5E1)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { previewRadiusKm = r }
+                            ) {
+                                Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSel) Color.White else Color(0xFF475569)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Slider with real-time value display
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Target Radius for Selected Branch:", style = MaterialTheme.typography.bodySmall, color = Color(0xFF64748B))
+                        Text(
+                            text = "${"%.1f".format(previewRadiusKm)} km (${(previewRadiusKm * 1000).toInt()} m)",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0084D6)
+                        )
+                    }
+
+                    Slider(
+                        value = previewRadiusKm.toFloat(),
+                        onValueChange = { previewRadiusKm = it.toDouble() },
+                        valueRange = 0.3f..3.0f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF0084D6),
+                            activeTrackColor = Color(0xFF0084D6)
+                        )
                     )
-                )
+
+                    // Save strictly for selected branch
+                    Button(
+                        onClick = {
+                            selectedBranch?.let { b ->
+                                CoverageDataStore.updateBranchRadius(b.id, previewRadiusKm)
+                                Toast.makeText(context, "Saved! ${b.name} radius set to ${"%.1f".format(previewRadiusKm)} km", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6))
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Save Coverage Radius for ${selectedBranch?.name ?: "Branch"}",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
             }
         }
 
-        // OpenStreetMap Viewer
-        Box(modifier = Modifier.weight(1f)) {
-            CoverageSimulatorMapView(
-                branches = CoverageDataStore.activeBranches,
-                radiusMeters = radiusMeters
-            )
+        // Rectangular Map Card Container with fixed height (Neatly bounded)
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(310.dp)
+            ) {
+                CoverageSimulatorMapView(
+                    branches = CoverageDataStore.activeBranches,
+                    selectedBranchId = selectedBranch?.id,
+                    previewRadiusKm = previewRadiusKm
+                )
+            }
         }
     }
 

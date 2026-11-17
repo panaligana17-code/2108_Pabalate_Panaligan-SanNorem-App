@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -534,7 +535,7 @@ object CoverageDataStore {
                 hours = "6:00 AM - 10:00 PM",
                 isVerified = true,
                 attrs = listOf("Fresh Food Section", "Express Checkout", "Personal Care"),
-                strategy = "Town proper residential shopping and convenience store."
+                strategy = "Town proper residential shopping and neighborhood store."
             ),
             CoverageBranch(
                 id = "ALFA-003",
@@ -651,7 +652,7 @@ object CoverageDataStore {
                 hours = "6:00 AM - 10:00 PM",
                 isVerified = true,
                 attrs = listOf("Full Supermarket Line", "Personal Care", "Snacks"),
-                strategy = "Downtown shopping convenience for Barangay 7 residents."
+                strategy = "Downtown shopping neighborhood access for Barangay 7 residents."
             ),
             CoverageBranch(
                 id = "ALFA-012",
@@ -703,7 +704,7 @@ object CoverageDataStore {
                 hours = "6:00 AM - 10:00 PM",
                 isVerified = true,
                 attrs = listOf("Neighborhood Grocery", "Daily Household Goods", "Drinks"),
-                strategy = "Malarutan eastern border shopping convenience."
+                strategy = "Malarutan eastern border shopping neighborhood access."
             ),
             CoverageBranch(
                 id = "ALFA-016",
@@ -876,7 +877,7 @@ object CoverageDataStore {
                 hours = "24/7",
                 isVerified = true,
                 attrs = listOf("24/7 Operations", "CLiQQ Digital Kiosk & Bill Pay", "ATM Machine"),
-                strategy = "Flagship 24/7 convenience store at Roxaco Landing corridor."
+                strategy = "Flagship 24/7 neighborhood store at Roxaco Landing corridor."
             ),
             CoverageBranch(
                 id = "SEVN-002",
@@ -889,7 +890,7 @@ object CoverageDataStore {
                 hours = "24/7",
                 isVerified = true,
                 attrs = listOf("24/7 Quick Service", "Hot Food & Meals", "Chilled Beverages"),
-                strategy = "Prime downtown walking convenience along J.P. Laurel."
+                strategy = "Prime downtown walking neighborhood access along J.P. Laurel."
             ),
             CoverageBranch(
                 id = "SEVN-003",
@@ -1079,12 +1080,26 @@ object CoverageDataStore {
         isStoreInitialized = true
 
         if (activeBranches.isEmpty()) {
-            val enriched = branches.map { b ->
-                if (b.servicesStatus.isEmpty()) {
-                    b.copy(servicesStatus = getDefaultServices(b.brand, b.attrs))
-                } else b
+            // Admin-controlled dynamic services: only explicit admin-selected services are active; hide unselected defaults
+            val initialConfigured = branches.map { b ->
+                val adminServices = when (b.id) {
+                    "ALFA-001" -> mapOf(
+                        "GCash Cash-In" to ServiceItemStatus(state = ServiceState.WORKING),
+                        "ATM" to ServiceItemStatus(state = ServiceState.BUSY)
+                    )
+                    "SEVN-001" -> mapOf(
+                        "Cliqq Kiosk" to ServiceItemStatus(state = ServiceState.OFFLINE),
+                        "ATM" to ServiceItemStatus(state = ServiceState.WORKING)
+                    )
+                    "DALI-001" -> mapOf(
+                        "GCash Cash-In" to ServiceItemStatus(state = ServiceState.WORKING),
+                        "Frozen Meat" to ServiceItemStatus(state = ServiceState.WORKING)
+                    )
+                    else -> emptyMap()
+                }
+                b.copy(servicesStatus = adminServices)
             }
-            activeBranches.addAll(enriched)
+            activeBranches.addAll(initialConfigured)
         }
 
         if (serviceReports.isEmpty()) {
@@ -1132,7 +1147,7 @@ object CoverageDataStore {
                     preferredBrand = "DALI",
                     lat = 14.0210,
                     lng = 120.6200,
-                    note = "Coastal fishing community with zero modern convenience stores.",
+                    note = "Coastal fishing community with zero modern neighborhood stores.",
                     userEmail = "maria.santos@gmail.com",
                     timestamp = System.currentTimeMillis() - 5 * 3600 * 1000
                 )
@@ -1317,12 +1332,67 @@ object CoverageDataStore {
         request.status = "REJECTED"
     }
 
-    // Module 3 Admin: Custom Service Tag Manager & Bulk Assignment
+    // Module 3 Admin: Custom Service Tag Manager & Per-Branch Assignment
     fun createCustomServiceTag(tag: String): Boolean {
         val clean = tag.trim()
         if (clean.isBlank() || customServiceTags.contains(clean)) return false
         customServiceTags.add(clean)
         return true
+    }
+
+    // Strict Per-Branch Coverage & Metadata Updates (Enforces per-branch constraint)
+    fun updateBranchRadius(branchId: String, newRadiusKm: Double) {
+        val idx = activeBranches.indexOfFirst { it.id == branchId }
+        if (idx != -1) {
+            val b = activeBranches[idx]
+            activeBranches[idx] = b.copy(radiusKm = newRadiusKm)
+        }
+    }
+
+    fun updateBranchAmenities(branchId: String, newAttrs: List<String>) {
+        val idx = activeBranches.indexOfFirst { it.id == branchId }
+        if (idx != -1) {
+            val b = activeBranches[idx]
+            activeBranches[idx] = b.copy(attrs = newAttrs.distinct())
+        }
+    }
+
+    fun addBranchAmenity(branchId: String, tag: String) {
+        val idx = activeBranches.indexOfFirst { it.id == branchId }
+        if (idx != -1) {
+            val b = activeBranches[idx]
+            if (!b.attrs.contains(tag)) {
+                activeBranches[idx] = b.copy(attrs = b.attrs + tag)
+            }
+        }
+    }
+
+    fun removeBranchAmenity(branchId: String, tag: String) {
+        val idx = activeBranches.indexOfFirst { it.id == branchId }
+        if (idx != -1) {
+            val b = activeBranches[idx]
+            activeBranches[idx] = b.copy(attrs = b.attrs.filter { it != tag })
+        }
+    }
+
+    fun setBranchServiceStatus(branchId: String, serviceName: String, state: ServiceState) {
+        val idx = activeBranches.indexOfFirst { it.id == branchId }
+        if (idx != -1) {
+            val b = activeBranches[idx]
+            val newMap = b.servicesStatus.toMutableMap()
+            newMap[serviceName] = ServiceItemStatus(state = state, lastUpdated = System.currentTimeMillis())
+            activeBranches[idx] = b.copy(servicesStatus = newMap)
+        }
+    }
+
+    fun removeBranchService(branchId: String, serviceName: String) {
+        val idx = activeBranches.indexOfFirst { it.id == branchId }
+        if (idx != -1) {
+            val b = activeBranches[idx]
+            val newMap = b.servicesStatus.toMutableMap()
+            newMap.remove(serviceName)
+            activeBranches[idx] = b.copy(servicesStatus = newMap)
+        }
     }
 
     fun bulkAssignServiceTag(tagName: String, branchIds: Set<String>) {
@@ -2051,7 +2121,7 @@ fun OnboardingTutorialDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Explore the complete retail convenience network of Nasugbu, Batangas. We track 31 verified official branches across 16 Alfamart, 11 DALI Everyday Grocery, and 4 7-Eleven locations.",
+                            text = "Explore the complete retail neighborhood store network of Nasugbu, Batangas. We track 31 verified official branches across 16 Alfamart, 11 DALI Everyday Grocery, and 4 7-Eleven locations.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xFF475569),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -2443,7 +2513,7 @@ fun SanNoremDashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Browse convenience stores across Nasugbu and check nearby store locations.",
+                                text = "Mag-ikot at alamin kung aling neighborhood store ang pinakamalapit sa iyo! 🛵",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF64748B)
                             )
@@ -2467,7 +2537,7 @@ fun SanNoremDashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "May malapit kaya?",
+                                text = "May malapit kaya? Hanapin Na! 🔍",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White
@@ -2763,7 +2833,7 @@ fun SanNoremDashboardScreen(
                         color = Color(0xFF64748B)
                     )
                     Text(
-                        text = "Complete convenience store network across Nasugbu, Batangas. Tap 'Services' for live GCash/ATM status, or 'View on map' for GIS boundaries.",
+                        text = "Complete neighborhood store network across Nasugbu, Batangas. Tap 'Services' para sa live GCash/ATM status, o i-pin sa mapa! 🧭",
                         style = MaterialTheme.typography.bodySmall,
                         fontSize = 12.sp,
                         color = Color(0xFF94A3B8)
@@ -3068,153 +3138,35 @@ fun UnifiedBlueBranchCard(
             // Details rows
             CleanRow(label = "Operating Hours:", value = branch.hours)
             CleanRow(label = "Barangay:", value = CoverageDataStore.getBarangayName(branch.brgyId))
-            CleanRow(label = "Service Coverage:", value = "${branch.radiusKm} km radius")
-
-            // MODULE 1: Live Services Status Row
-            if (branch.servicesStatus.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "LIVE SERVICES AVAILABILITY",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF94A3B8),
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    branch.servicesStatus.forEach { (srvName, srvItem) ->
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(srvItem.state.colorHex).copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, Color(srvItem.state.colorHex).copy(alpha = 0.5f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(srvItem.state.colorHex))
-                                )
-                                Text(
-                                    text = "$srvName: ${srvItem.state.label}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(srvItem.state.colorHex)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (branch.attrs.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "STORE AMENITIES & HIGHLIGHTS",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF94A3B8),
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                branch.attrs.forEach { attr ->
-                    Text(
-                        text = attr.uppercase(),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0084D6)
-                    )
-                }
-            }
-
-            if (branch.strategy.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFF8FAFC),
-                    border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Text(
-                            text = "COMMUNITY PROFILE:",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF334155)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = branch.strategy,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-                }
-            }
+            CleanRow(label = "Proximity Reach:", value = "${branch.radiusKm} km")
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Action Buttons: "Live Services" button + "View on map →" button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Action Button: Full-width prominent "View on Map →" button
+            Button(
+                onClick = { onViewOnMap(branch) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (status.isOpen) Color(0xFF0084D6) else Color(0xFF475569)
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
-                OutlinedButton(
-                    onClick = onViewDetails,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.2.dp, Color(0xFF0084D6)),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Storefront,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = Color(0xFF0084D6)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Services",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0084D6)
-                    )
-                }
-
-                Button(
-                    onClick = { onViewOnMap(branch) },
-                    modifier = Modifier
-                        .weight(1.3f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (status.isOpen) Color(0xFF0084D6) else Color(0xFF475569)
-                    ),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    Text(
-                        text = if (status.isOpen) "View on map →" else "Map (Closed) →",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (status.isOpen) "View on Map →" else "View on Map (Closed) →",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }
@@ -3514,6 +3466,19 @@ fun BlueThemedCoverageMapModal(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             isTilesScaledToDpi = true
+            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
+                }
+                false
+            }
 
             controller.setZoom(initialZoom)
             controller.setCenter(featureCenter)
@@ -3571,9 +3536,9 @@ fun BlueThemedCoverageMapModal(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isMayMalapitKaya) "Mga Malapit na Tindahan sa Iyo"
+                    text = if (isMayMalapitKaya) "May Malapit Kaya? Heto ang Sagot! 📍"
                            else if (selectedBarangayId != "ALL") "${CoverageDataStore.getBarangayName(selectedBarangayId)} GIS Boundary"
-                           else "Nasugbu Store Network Map",
+                           else "Nasugbu Store Network Map 🗺️",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A)
@@ -3581,11 +3546,11 @@ fun BlueThemedCoverageMapModal(
                 Text(
                     text = if (selectedBarangayId != "ALL") {
                         val brgyName = CoverageDataStore.getBarangayName(selectedBarangayId)
-                        "${branchesToDisplay.size} branch(es) · $totalOpenCount Open, $totalClosedCount Closed inside $brgyName"
+                        "${branchesToDisplay.size} tindahan · $totalOpenCount Bukas, $totalClosedCount Sarado sa $brgyName"
                     } else if (isMayMalapitKaya) {
-                        "Live location detected · Pinakamalapit na Alfamart, DALI, at 7-Eleven"
+                        "Live location detected · Pinakamalapit na Alfamart, DALI, at 7-Eleven sa paligid mo! 🛵"
                     } else {
-                        "${branchesToDisplay.size} branch(es) · $totalOpenCount Open, $totalClosedCount Closed across Nasugbu"
+                        "${branchesToDisplay.size} tindahan · $totalOpenCount Bukas, $totalClosedCount Sarado sa buong Nasugbu"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
@@ -3632,9 +3597,9 @@ fun BlueThemedCoverageMapModal(
                         )
                         Text(
                             text = when (statusFilter) {
-                                StoreStatusFilter.ALL -> "Filter: All"
-                                StoreStatusFilter.OPEN_ONLY -> "Open Only ($totalOpenCount)"
-                                StoreStatusFilter.CLOSED_ONLY -> "Closed Only ($totalClosedCount)"
+                                StoreStatusFilter.ALL -> "Lahat (${branchesToDisplay.size})"
+                                StoreStatusFilter.OPEN_ONLY -> "Bukas Lang ($totalOpenCount) 🟢"
+                                StoreStatusFilter.CLOSED_ONLY -> "Sarado Muna ($totalClosedCount) 🌙"
                             },
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.ExtraBold,
@@ -3649,485 +3614,430 @@ fun BlueThemedCoverageMapModal(
         }
         HorizontalDivider(color = Color(0xFFE2E8F0))
 
-        // Body: Map & Overlays (Full height map with floating top filter bar)
-        Box(modifier = Modifier.weight(1f)) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { mapView },
-                update = { map ->
-                    map.overlays.clear()
-
-                    val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
-                        override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                            activeRadiusBranch = null
-                            customerLocation = p
-                            requestLocationForDialog = p
-                            coveringResults = CoverageDataStore.findNearbyAll(p.latitude, p.longitude, allStoreBranches)
-                            map.controller.animateTo(p, map.zoomLevelDouble, 500L)
-                            return true
-                        }
-                        override fun longPressHelper(p: GeoPoint): Boolean {
-                            requestLocationForDialog = p
-                            showRequestStoreDialog = true
-                            return true
-                        }
-                    })
-                    map.overlays.add(eventsOverlay)
-
-                    // Barangay Geographic Boundary Polygon (Sleek translucent fill & sharp GIS stroke)
-                    if (selectedBarangayId != "ALL") {
-                        val boundaryPoints = CoverageDataStore.getBarangayPolygon(context, selectedBarangayId)
-                        if (boundaryPoints != null && boundaryPoints.isNotEmpty()) {
-                            val boundaryPolygon = Polygon(map).apply {
-                                points = boundaryPoints
-                                val baseColor = android.graphics.Color.parseColor("#0084D6")
-                                val fillColorInt = (0x24 shl 24) or (baseColor and 0x00FFFFFF)
-                                fillPaint.color = fillColorInt
-                                outlinePaint.color = baseColor
-                                outlinePaint.strokeWidth = 5f
-                            }
-                            map.overlays.add(boundaryPolygon)
-                        }
-                    }
-
-                    // Active Service Area Radius Circle
-                    activeRadiusBranch?.let { branch ->
-                        val isOpen = CoverageDataStore.isBranchEffectivelyOpen(branch)
-                        val circle = Polygon(map).apply {
-                            val center = GeoPoint(branch.lat, branch.lng)
-                            points = Polygon.pointsAsCircle(center, branch.radiusKm * 1000.0)
-                            val baseColor = if (isOpen) branch.brand.hexColor.toInt() else android.graphics.Color.rgb(100, 116, 139)
-                            val fillColorInt = (0x28 shl 24) or (baseColor and 0x00FFFFFF)
-                            fillPaint.color = fillColorInt
-                            outlinePaint.color = baseColor
-                            outlinePaint.strokeWidth = 4f
-                            setOnClickListener { _, _, _ ->
-                                activeRadiusBranch = null
-                                true
-                            }
-                        }
-                        map.overlays.add(circle)
-                    }
-
-                    // Customer Live / Selected Location Marker
-                    customerLocation?.let { loc ->
-                        val userMarker = Marker(map).apply {
-                            position = loc
-                            title = if (isMayMalapitKaya) "Ang Iyong Lokasyon" else "Selected Location"
-                            snippet = "Scanning nearby branches..."
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                            icon = customerPinDrawable
-                        }
-                        map.overlays.add(userMarker)
-                    }
-
-                    // Store Branch Markers (Filtered strictly to selected barangay polygon or all if "ALL")
-                    branchesToDisplay.forEach { branch ->
-                        val isOpen = CoverageDataStore.isBranchEffectivelyOpen(branch)
-                        val status = CoverageDataStore.getEffectiveStatusDetails(branch)
-                        val marker = Marker(map).apply {
-                            position = GeoPoint(branch.lat, branch.lng)
-                            title = branch.name
-                            snippet = "${branch.brand.label} · ${status.label} · ${branch.radiusKm} km radius"
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            icon = if (isOpen) pinDrawables[branch.brand] else closedPinDrawables[branch.brand]
-                            setOnMarkerClickListener { _, _ ->
-                                activeRadiusBranch = branch
-                                map.controller.animateTo(GeoPoint(branch.lat, branch.lng), 16.5, 600L)
-                                true
-                            }
-                        }
-                        map.overlays.add(marker)
-                    }
-
-                    map.postInvalidate()
-                }
-            )
-
-            // Pinned Floating Filter Bar on the TOP OF THE MAP (Maximizes map view & holds feature)
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White.copy(alpha = 0.96f),
-                shadowElevation = 5.dp,
-                border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+        // Fixed Top Filter Bar outside the map (Always visible, holds features cleanly)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFFF8FAFC),
+            border = BorderStroke(0.dp, Color.Transparent)
+        ) {
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FlowRow(
+                Text(
+                    text = "Brands:",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF475569)
+                )
+
+                // 7-Eleven Toggle
+                BrandFilterToggleChip(
+                    label = "7-Eleven",
+                    count = baseBarangayBranches.count { it.brand == CoverageBrand.SEVEN_ELEVEN },
+                    isActive = showSevenEleven,
+                    brandColor = Color(0xFFEA580C),
+                    onToggle = {
+                        showSevenEleven = !showSevenEleven
+                        frameFeature(animated = true)
+                    }
+                )
+
+                // Alfamart Toggle
+                BrandFilterToggleChip(
+                    label = "Alfamart",
+                    count = baseBarangayBranches.count { it.brand == CoverageBrand.ALFAMART },
+                    isActive = showAlfamart,
+                    brandColor = Color(0xFFDC2626),
+                    onToggle = {
+                        showAlfamart = !showAlfamart
+                        frameFeature(animated = true)
+                    }
+                )
+
+                // DALI Toggle
+                BrandFilterToggleChip(
+                    label = "DALI",
+                    count = baseBarangayBranches.count { it.brand == CoverageBrand.DALI },
+                    isActive = showDali,
+                    brandColor = Color(0xFF2563EB),
+                    onToggle = {
+                        showDali = !showDali
+                        frameFeature(animated = true)
+                    }
+                )
+
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Brands:",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF475569)
-                    )
+                        .height(18.dp)
+                        .width(1.dp)
+                        .background(Color(0xFFCBD5E1))
+                )
 
-                    // 7-Eleven Toggle
-                    BrandFilterToggleChip(
-                        label = "7-Eleven",
-                        count = baseBarangayBranches.count { it.brand == CoverageBrand.SEVEN_ELEVEN },
-                        isActive = showSevenEleven,
-                        brandColor = Color(0xFFEA580C),
-                        onToggle = {
-                            showSevenEleven = !showSevenEleven
-                            frameFeature(animated = true)
-                        }
-                    )
+                Text(
+                    text = "Hours:",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF475569)
+                )
 
-                    // Alfamart Toggle
-                    BrandFilterToggleChip(
-                        label = "Alfamart",
-                        count = baseBarangayBranches.count { it.brand == CoverageBrand.ALFAMART },
-                        isActive = showAlfamart,
-                        brandColor = Color(0xFFDC2626),
-                        onToggle = {
-                            showAlfamart = !showAlfamart
-                            frameFeature(animated = true)
-                        }
-                    )
-
-                    // DALI Toggle
-                    BrandFilterToggleChip(
-                        label = "DALI",
-                        count = baseBarangayBranches.count { it.brand == CoverageBrand.DALI },
-                        isActive = showDali,
-                        brandColor = Color(0xFF2563EB),
-                        onToggle = {
-                            showDali = !showDali
-                            frameFeature(animated = true)
-                        }
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .height(18.dp)
-                            .width(1.dp)
-                            .background(Color(0xFFCBD5E1))
-                    )
-
-                    Text(
-                        text = "Hours:",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF475569)
-                    )
-
-                    // Status Filter Chips
-                    HoursFilterToggleChip(
-                        label = "All",
-                        count = baseBarangayBranches.size,
-                        isSelected = statusFilter == StoreStatusFilter.ALL,
-                        activeColor = Color(0xFF0084D6),
-                        onClick = {
-                            statusFilter = StoreStatusFilter.ALL
-                            frameFeature(animated = true)
-                        }
-                    )
-                    HoursFilterToggleChip(
-                        label = "Open Now",
-                        count = totalOpenCount,
-                        isSelected = statusFilter == StoreStatusFilter.OPEN_ONLY,
-                        activeColor = Color(0xFF16A34A),
-                        onClick = {
-                            statusFilter = StoreStatusFilter.OPEN_ONLY
-                            frameFeature(animated = true)
-                        }
-                    )
-                    HoursFilterToggleChip(
-                        label = "Closed",
-                        count = totalClosedCount,
-                        isSelected = statusFilter == StoreStatusFilter.CLOSED_ONLY,
-                        activeColor = Color(0xFF475569),
-                        onClick = {
-                            statusFilter = StoreStatusFilter.CLOSED_ONLY
-                            frameFeature(animated = true)
-                        }
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .height(18.dp)
-                            .width(1.dp)
-                            .background(Color(0xFFCBD5E1))
-                    )
-
-                    // Multi-Service Filter Chip in Map
-                    val mapServiceCount = selectedServiceFilters.size + if (showBookmarkedOnly) 1 else 0
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = if (mapServiceCount > 0) Color(0xFF0084D6) else Color.White,
-                        border = BorderStroke(1.2.dp, Color(0xFF0084D6)),
-                        shadowElevation = if (mapServiceCount > 0) 3.dp else 0.dp,
-                        modifier = Modifier.clickable { showMultiServiceFilter = true }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FilterList,
-                                contentDescription = null,
-                                tint = if (mapServiceCount > 0) Color.White else Color(0xFF0084D6),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = if (mapServiceCount > 0) "Services ($mapServiceCount)" else "Services",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (mapServiceCount > 0) Color.White else Color(0xFF0084D6)
-                            )
-                        }
+                // Status Filter Chips
+                HoursFilterToggleChip(
+                    label = "All",
+                    count = baseBarangayBranches.size,
+                    isSelected = statusFilter == StoreStatusFilter.ALL,
+                    activeColor = Color(0xFF0084D6),
+                    onClick = {
+                        statusFilter = StoreStatusFilter.ALL
+                        frameFeature(animated = true)
                     }
+                )
+                HoursFilterToggleChip(
+                    label = "Open Now",
+                    count = totalOpenCount,
+                    isSelected = statusFilter == StoreStatusFilter.OPEN_ONLY,
+                    activeColor = Color(0xFF16A34A),
+                    onClick = {
+                        statusFilter = StoreStatusFilter.OPEN_ONLY
+                        frameFeature(animated = true)
+                    }
+                )
+                HoursFilterToggleChip(
+                    label = "Closed",
+                    count = totalClosedCount,
+                    isSelected = statusFilter == StoreStatusFilter.CLOSED_ONLY,
+                    activeColor = Color(0xFF475569),
+                    onClick = {
+                        statusFilter = StoreStatusFilter.CLOSED_ONLY
+                        frameFeature(animated = true)
+                    }
+                )
 
-                    // Request Store Chip in Map
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFF0FDF4),
-                        border = BorderStroke(1.2.dp, Color(0xFF22C55E)),
-                        modifier = Modifier.clickable {
-                            requestLocationForDialog = customerLocation ?: featureCenter
-                            showRequestStoreDialog = true
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AddLocationAlt,
-                                contentDescription = null,
-                                tint = Color(0xFF16A34A),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = "+ Suggest Store",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF15803D)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Map Zoom & Re-Center Controls (+ / - / Hold Feature)
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    IconButton(onClick = { mapView.controller.zoomIn(500L) }) {
-                        Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = Color(0xFF0084D6))
-                    }
-                }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    IconButton(onClick = { mapView.controller.zoomOut(500L) }) {
-                        Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = Color(0xFF0084D6))
-                    }
-                }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    IconButton(onClick = { frameFeature(animated = true) }) {
-                        Icon(Icons.Default.MyLocation, contentDescription = "Hold & Re-center Feature", tint = Color(0xFF0084D6))
-                    }
-                }
-            }
-
-            // Active Highlight Banner with live status and smooth animation
-            androidx.compose.animation.AnimatedVisibility(
-                visible = activeRadiusBranch != null,
-                enter = fadeIn(tween(250)) + slideInVertically(tween(250)) { it / 2 },
-                exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { it / 2 },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp, start = 14.dp, end = 14.dp)
-            ) {
-                activeRadiusBranch?.let { activeBranch ->
-                    val branchStatus = CoverageDataStore.getEffectiveStatusDetails(activeBranch)
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color.White.copy(alpha = 0.96f),
-                        shadowElevation = 6.dp,
-                        border = BorderStroke(1.2.dp, if (branchStatus.isOpen) Color(0xFF0084D6) else Color(0xFF64748B)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = activeBranch.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF0F172A)
-                                )
-                                Text(
-                                    text = "${activeBranch.brand.label} · ${branchStatus.label} · Area: ${activeBranch.radiusKm} km",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = if (branchStatus.isOpen) Color(0xFF0084D6) else Color(0xFF64748B),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Button(
-                                    onClick = { selectedBranchForDetails = activeBranch },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Text("Services", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                }
-                                IconButton(
-                                    onClick = { activeRadiusBranch = null },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear Highlight", tint = Color(0xFF64748B))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Friendly Empty State overlay if active filters match 0 stores
-            if (branchesToDisplay.isEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color.White,
-                    shadowElevation = 6.dp,
-                    border = BorderStroke(1.5.dp, Color(0xFFBFDBFE)),
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp)
+                        .height(18.dp)
+                        .width(1.dp)
+                        .background(Color(0xFFCBD5E1))
+                )
+
+                // Multi-Service Filter Chip in Map
+                val mapServiceCount = selectedServiceFilters.size + if (showBookmarkedOnly) 1 else 0
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (mapServiceCount > 0) Color(0xFF0084D6) else Color.White,
+                    border = BorderStroke(1.2.dp, Color(0xFF0084D6)),
+                    shadowElevation = if (mapServiceCount > 0) 3.dp else 0.dp,
+                    modifier = Modifier.clickable { showMultiServiceFilter = true }
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                            imageVector = Icons.Default.FilterList,
                             contentDescription = null,
-                            tint = Color(0xFF0084D6),
-                            modifier = Modifier.size(32.dp)
+                            tint = if (mapServiceCount > 0) Color.White else Color(0xFF0084D6),
+                            modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = if (statusFilter == StoreStatusFilter.CLOSED_ONLY) "Walang saradong tindahan sa oras na ito!"
-                                   else if (statusFilter == StoreStatusFilter.OPEN_ONLY) "Walang bukas na tindahan sa kasalukuyan."
-                                   else "Walang tindahang tumutugma sa filter.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = if (mapServiceCount > 0) "Services ($mapServiceCount)" else "Services",
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            color = if (mapServiceCount > 0) Color.White else Color(0xFF0084D6)
+                        )
+                    }
+                }
+
+                // Request Store Chip in Map
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFFF0FDF4),
+                    border = BorderStroke(1.2.dp, Color(0xFF22C55E)),
+                    modifier = Modifier.clickable {
+                        requestLocationForDialog = customerLocation ?: featureCenter
+                        showRequestStoreDialog = true
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddLocationAlt,
+                            contentDescription = null,
+                            tint = Color(0xFF16A34A),
+                            modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = if (statusFilter == StoreStatusFilter.CLOSED_ONLY) "Lahat ng $totalOpenCount sangay ay bukas ngayon."
-                                   else "Subukang i-reset ang filter upang makita ang lahat ng sangay.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            text = "+ Suggest a Suki Store 🏪",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF15803D)
                         )
-                        Button(
-                            onClick = {
-                                showSevenEleven = true
-                                showAlfamart = true
-                                showDali = true
-                                statusFilter = StoreStatusFilter.ALL
-                                frameFeature(animated = true)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                        ) {
-                            Text("Ipakita Lahat (Reset)", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
             }
         }
 
-        // Results Bottom Panel
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFFF8FAFC),
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        HorizontalDivider(color = Color(0xFFE2E8F0))
+
+        // FULL SCREEN RESPONSIVE MAP CONTAINER (Fills all available space cleanly, no empty white space)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                if (customerLocation == null) {
-                    Text(
-                        text = "Select any point on the map or tap 'May malapit kaya?' to detect nearby stores.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF64748B)
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { mapView },
+                    update = { map ->
+                        map.overlays.clear()
+
+                        val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
+                            override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                                activeRadiusBranch = null
+                                customerLocation = p
+                                requestLocationForDialog = p
+                                coveringResults = CoverageDataStore.findNearbyAll(p.latitude, p.longitude, allStoreBranches)
+                                map.controller.animateTo(p, map.zoomLevelDouble, 500L)
+                                return true
+                            }
+                            override fun longPressHelper(p: GeoPoint): Boolean {
+                                requestLocationForDialog = p
+                                showRequestStoreDialog = true
+                                return true
+                            }
+                        })
+                        map.overlays.add(eventsOverlay)
+
+                        // Barangay Geographic Boundary Polygon (Sleek translucent fill & sharp GIS stroke)
+                        if (selectedBarangayId != "ALL") {
+                            val boundaryPoints = CoverageDataStore.getBarangayPolygon(context, selectedBarangayId)
+                            if (boundaryPoints != null && boundaryPoints.isNotEmpty()) {
+                                val boundaryPolygon = Polygon(map).apply {
+                                    points = boundaryPoints
+                                    val baseColor = android.graphics.Color.parseColor("#0084D6")
+                                    val fillColorInt = (0x24 shl 24) or (baseColor and 0x00FFFFFF)
+                                    fillPaint.color = fillColorInt
+                                    outlinePaint.color = baseColor
+                                    outlinePaint.strokeWidth = 5f
+                                }
+                                map.overlays.add(boundaryPolygon)
+                            }
+                        }
+
+                        // Active Service Area Radius Circle
+                        activeRadiusBranch?.let { branch ->
+                            val isOpen = CoverageDataStore.isBranchEffectivelyOpen(branch)
+                            val circle = Polygon(map).apply {
+                                val center = GeoPoint(branch.lat, branch.lng)
+                                points = Polygon.pointsAsCircle(center, branch.radiusKm * 1000.0)
+                                val baseColor = if (isOpen) branch.brand.hexColor.toInt() else android.graphics.Color.rgb(100, 116, 139)
+                                val fillColorInt = (0x28 shl 24) or (baseColor and 0x00FFFFFF)
+                                fillPaint.color = fillColorInt
+                                outlinePaint.color = baseColor
+                                outlinePaint.strokeWidth = 4f
+                                setOnClickListener { _, _, _ ->
+                                    activeRadiusBranch = null
+                                    true
+                                }
+                            }
+                            map.overlays.add(circle)
+                        }
+
+                        // Customer Live / Selected Location Marker
+                        customerLocation?.let { loc ->
+                            val userMarker = Marker(map).apply {
+                                position = loc
+                                title = if (isMayMalapitKaya) "Ang Iyong Lokasyon" else "Selected Location"
+                                snippet = "Scanning nearby branches..."
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                icon = customerPinDrawable
+                            }
+                            map.overlays.add(userMarker)
+                        }
+
+                        // Store Branch Markers (Filtered strictly to selected barangay polygon or all if "ALL")
+                        branchesToDisplay.forEach { branch ->
+                            val isOpen = CoverageDataStore.isBranchEffectivelyOpen(branch)
+                            val status = CoverageDataStore.getEffectiveStatusDetails(branch)
+                            val marker = Marker(map).apply {
+                                position = GeoPoint(branch.lat, branch.lng)
+                                title = branch.name
+                                snippet = "${branch.brand.label} · ${status.label} · ${branch.radiusKm} km radius"
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                icon = if (isOpen) pinDrawables[branch.brand] else closedPinDrawables[branch.brand]
+                                setOnMarkerClickListener { _, _ ->
+                                    activeRadiusBranch = branch
+                                    map.controller.animateTo(GeoPoint(branch.lat, branch.lng), 16.5, 600L)
+                                    true
+                                }
+                            }
+                            map.overlays.add(marker)
+                        }
+
+                        map.postInvalidate()
+                    }
+                )
+
+                // Helpful Floating Hint Pill when no pin or point is selected
+                if (customerLocation == null && activeRadiusBranch == null) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White.copy(alpha = 0.94f),
+                        shadowElevation = 3.dp,
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 10.dp)
                     ) {
-                        Text(
-                            text = if (isMayMalapitKaya) "Pinakamalapit na mga Tindahan sa Lokasyon Mo:"
-                                   else "Nearby Store Branches:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFEFF6FF),
-                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.NearMe,
+                                contentDescription = null,
+                                tint = Color(0xFF0084D6),
+                                modifier = Modifier.size(14.dp)
+                            )
                             Text(
-                                text = "Nasugbu Area",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                text = "I-tap ang mapa o pin para makita ang suki stores! 🛵",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0084D6)
+                                color = Color(0xFF0F172A)
                             )
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                // Map Zoom & Re-Center Controls (+ / - / Hold Feature)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White,
+                        shadowElevation = 3.dp,
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        IconButton(onClick = { mapView.controller.zoomIn(500L) }) {
+                            Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = Color(0xFF0084D6), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White,
+                        shadowElevation = 3.dp,
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        IconButton(onClick = { mapView.controller.zoomOut(500L) }) {
+                            Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = Color(0xFF0084D6), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White,
+                        shadowElevation = 3.dp,
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        IconButton(onClick = { frameFeature(animated = true) }) {
+                            Icon(Icons.Default.MyLocation, contentDescription = "Hold & Re-center Feature", tint = Color(0xFF0084D6), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
 
+                // Active Highlight Banner with live status and smooth animation inside Map Card
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = activeRadiusBranch != null,
+                    enter = fadeIn(tween(250)) + slideInVertically(tween(250)) { it / 2 },
+                    exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { it / 2 },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 10.dp, start = 10.dp, end = 10.dp)
+                ) {
+                    activeRadiusBranch?.let { activeBranch ->
+                        val branchStatus = CoverageDataStore.getEffectiveStatusDetails(activeBranch)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White.copy(alpha = 0.97f),
+                            shadowElevation = 8.dp,
+                            border = BorderStroke(1.2.dp, if (branchStatus.isOpen) Color(0xFF0084D6) else Color(0xFF64748B)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = activeBranch.name,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        text = "${activeBranch.brand.label} · ${branchStatus.label} · Reach: ${activeBranch.radiusKm} km",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 11.sp,
+                                        color = if (branchStatus.isOpen) Color(0xFF0084D6) else Color(0xFF64748B),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Button(
+                                        onClick = { selectedBranchForDetails = activeBranch },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Text("Services", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                    IconButton(
+                                        onClick = { activeRadiusBranch = null },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear Highlight", tint = Color(0xFF64748B))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Floating Nearby Suki Stores Panel when a location is tapped on map
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = customerLocation != null && activeRadiusBranch == null,
+                    enter = fadeIn(tween(250)) + slideInVertically(tween(250)) { it / 2 },
+                    exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { it / 2 },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 10.dp, start = 10.dp, end = 10.dp)
+                ) {
                     val displayCoveringResults = remember(coveringResults, showSevenEleven, showAlfamart, showDali, statusFilter) {
                         coveringResults.filter { res ->
                             val brandMatch = when (res.branch.brand) {
@@ -4144,62 +4054,173 @@ fun BlueThemedCoverageMapModal(
                         }
                     }
 
-                    // List of closest branches sorted by real distance
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        displayCoveringResults.take(4).forEach { res ->
-                            val brandColor = Color(res.branch.brand.hexColor)
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color.White,
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        activeRadiusBranch = res.branch
-                                        mapView.controller.animateTo(GeoPoint(res.branch.lat, res.branch.lng), 16.5, 600L)
-                                    }
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White.copy(alpha = 0.97f),
+                        shadowElevation = 8.dp,
+                        border = BorderStroke(1.2.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .clip(CircleShape)
-                                                .background(brandColor)
-                                        )
-                                        Column {
-                                            Text(
-                                                text = res.branch.name,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF0F172A)
-                                            )
-                                            Text(
-                                                text = "${res.branch.brand.label} · ${CoverageDataStore.getBarangayName(res.branch.brgyId)}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 11.sp,
-                                                color = Color(0xFF64748B)
-                                            )
-                                        }
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.NearMe,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0084D6),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Text(
-                                        text = if (res.distanceKm < 1.0) "${Math.round(res.distanceKm * 1000)} m"
-                                               else "${"%.1f".format(res.distanceKm)} km",
-                                        style = MaterialTheme.typography.bodySmall,
+                                        text = if (isMayMalapitKaya) "Pinakamalapit na Suki Stores sa Iyo 🛵"
+                                               else "Mga Suki Stores sa Paligid 🛍️",
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0084D6)
+                                        color = Color(0xFF0F172A)
                                     )
                                 }
+                                IconButton(
+                                    onClick = { customerLocation = null },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            if (displayCoveringResults.isEmpty()) {
+                                Text(
+                                    text = "Walang branch na tumutugma sa napiling filter sa lokasyong ito.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF64748B),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    displayCoveringResults.take(4).forEach { res ->
+                                        val brandColor = Color(res.branch.brand.hexColor)
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = Color(0xFFF8FAFC),
+                                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    activeRadiusBranch = res.branch
+                                                    mapView.controller.animateTo(GeoPoint(res.branch.lat, res.branch.lng), 16.5, 600L)
+                                                }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(10.dp)
+                                                            .clip(CircleShape)
+                                                            .background(brandColor)
+                                                    )
+                                                    Column {
+                                                        Text(
+                                                            text = res.branch.name,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = Color(0xFF0F172A)
+                                                        )
+                                                        Text(
+                                                            text = "${res.branch.brand.label} · ${CoverageDataStore.getBarangayName(res.branch.brgyId)}",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontSize = 10.sp,
+                                                            color = Color(0xFF64748B)
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = if (res.distanceKm < 1.0) "${Math.round(res.distanceKm * 1000)} m"
+                                                           else "${"%.1f".format(res.distanceKm)} km",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF0084D6)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Friendly Empty State overlay if active filters match 0 stores
+                if (branchesToDisplay.isEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        shadowElevation = 6.dp,
+                        border = BorderStroke(1.5.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(20.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                                contentDescription = null,
+                                tint = Color(0xFF0084D6),
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                text = if (statusFilter == StoreStatusFilter.CLOSED_ONLY) "Walang saradong tindahan sa oras na ito!"
+                                       else if (statusFilter == StoreStatusFilter.OPEN_ONLY) "Walang bukas na tindahan sa kasalukuyan."
+                                       else "Walang tindahang tumutugma sa filter.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Button(
+                                onClick = {
+                                    showSevenEleven = true
+                                    showAlfamart = true
+                                    showDali = true
+                                    statusFilter = StoreStatusFilter.ALL
+                                    frameFeature(animated = true)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            ) {
+                                Text("Ipakita Lahat (Reset)", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

@@ -241,7 +241,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Browse Nasugbu convenience stores and test customer proximity to each service radius.",
+                                text = "Browse Nasugbu neighborhood stores and check customer proximity to each service radius.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF64748B)
                             )
@@ -469,7 +469,7 @@ fun DashboardScreen(
                             }
                         }
 
-                        // Action Buttons: "Test Customer Location" & "View Full Map"
+                        // Action Buttons: "Check My Proximity" & "View Full Map"
                         Button(
                             onClick = { onTestCustomerLocationClicked() },
                             modifier = Modifier
@@ -488,7 +488,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Test Customer Location",
+                                text = "Check My Proximity",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -538,7 +538,7 @@ fun DashboardScreen(
                         color = Color(0xFF64748B) // text-slate-500
                     )
                     Text(
-                        text = "Demo-data branches and all rural barangay positions are simulated and approximate. Click a pin on the map to reveal its coverage radius.",
+                        text = "Official branch network across Nasugbu. Tap any store pin on the map to inspect its coverage radius.",
                         style = MaterialTheme.typography.bodySmall,
                         fontSize = 12.sp,
                         color = Color(0xFF94A3B8) // text-slate-400

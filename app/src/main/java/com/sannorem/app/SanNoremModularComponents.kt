@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Check
@@ -33,10 +35,13 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Storefront
@@ -74,6 +79,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -375,7 +381,7 @@ fun BarangayCoverageCard(
             Text(
                 text = when (analytics.status) {
                     "Well-Served" -> "Mataas ang retail density sa barangay na ito. Madaling marating ang mga tindahan mula sa komunidad."
-                    "Moderate" -> "May 1-2 aktibong sangay. Sapat para sa pangunahing grocery ngunit bukas sa karagdagang convenience stores."
+                    "Moderate" -> "May 1-2 aktibong sangay. Sapat para sa pangunahing grocery ngunit bukas sa karagdagang neighborhood stores."
                     else -> "Underserved: Walang aktibong sangay sa loob ng boundary polygon na ito. Pangunahing target para sa Store Request."
                 },
                 style = MaterialTheme.typography.bodySmall,
@@ -783,346 +789,429 @@ fun RequestStoreDialog(
     }
 }
 
-// MODULE 1 & 3: BRANCH DETAILS DIALOG WITH LIVE CROWDSOURCED SERVICES
+// MODULE 1 & 3: BRANCH DETAILS DIALOG (ADMIN-MANAGED SERVICES & RICH STORE PROFILE)
 @Composable
 fun BranchDetailsModal(
     branch: CoverageBranch,
     isBookmarked: Boolean,
     onToggleBookmark: () -> Unit,
-    onReportService: (String, ServiceState) -> Unit,
+    onReportService: (String, ServiceState) -> Unit = { _, _ -> },
     onViewOnMap: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val status = CoverageDataStore.getEffectiveStatusDetails(branch)
-    var showReportSheet by remember { mutableStateOf(false) }
-    var selectedServiceToReport by remember { mutableStateOf<String?>(null) }
-    var reportedStateToSubmit by remember { mutableStateOf(ServiceState.WORKING) }
+    val brandColor = Color(branch.brand.hexColor)
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(24.dp),
             color = Color.White,
             shadowElevation = 16.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .wrapContentHeight()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                // RICH BRAND HERO BANNER (Fills and maximizes the top area cleanly)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(95.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(brandColor, brandColor.copy(alpha = 0.85f))
+                            )
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color(branch.brand.badgeBg),
-                                border = BorderStroke(1.dp, Color(branch.brand.badgeBorder))
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = branch.brand.label,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(branch.brand.hexColor)
+                                Icon(
+                                    imageVector = Icons.Default.Storefront,
+                                    contentDescription = null,
+                                    tint = brandColor,
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (status.isOpen) Color(0xFFECFDF5) else Color(0xFFFEF2F2),
-                                border = BorderStroke(1.dp, if (status.isOpen) Color(0xFFA7F3D0) else Color(0xFFFECACA))
-                            ) {
+                            Column {
                                 Text(
-                                    text = status.label,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (status.isOpen) Color(0xFF15803D) else Color(0xFFDC2626)
+                                    text = branch.brand.label,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "Nasugbu Neighborhood Network",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = Color.White.copy(alpha = 0.9f)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // Bookmark and Close Buttons
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.25f),
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                IconButton(onClick = onToggleBookmark) {
+                                    Icon(
+                                        imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "Bookmark",
+                                        tint = if (isBookmarked) Color(0xFFFF4D4F) else Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.25f),
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                IconButton(onClick = onDismiss) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // MAIN CONTENT SECTION
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Branch Name & Live Status Pills
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = branch.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF0F172A)
                         )
-                        Text(
-                            text = "${CoverageDataStore.getBarangayName(branch.brgyId)} · Hours: ${branch.hours}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
-                        )
-                    }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onToggleBookmark) {
-                            Icon(
-                                imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Bookmark",
-                                tint = if (isBookmarked) Color(0xFFDC2626) else Color(0xFF64748B)
-                            )
-                        }
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                // CROWDSOURCED LIVE SERVICE STATUS SECTION (Module 1)
-                Column {
-                    Text(
-                        text = "Live Store Services & Amenities",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
-                    Text(
-                        text = "Crowdsourced real-time operational status (Green = Working, Red = Offline, Orange = Busy)",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 11.sp,
-                        color = Color(0xFF64748B)
-                    )
-                }
-
-                // List of services with color badges
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val services = branch.servicesStatus.ifEmpty {
-                        CoverageDataStore.getDefaultServices(branch.brand, branch.attrs)
-                    }
-
-                    services.forEach { (serviceName, itemStatus) ->
-                        val (bg, border, textCol) = when (itemStatus.state) {
-                            ServiceState.WORKING -> Triple(Color(0xFFDCFCE7), Color(0xFF86EFAC), Color(0xFF15803D)) // Green
-                            ServiceState.BUSY -> Triple(Color(0xFFFFEDD5), Color(0xFFFDBA74), Color(0xFFC2410C))    // Orange
-                            ServiceState.OFFLINE -> Triple(Color(0xFFFEE2E2), Color(0xFFFCA5A5), Color(0xFFB91C1C)) // Red
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFF8FAFC),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.fillMaxWidth()
+                        // Badges Row
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = serviceName,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFF1E293B)
-                                    )
-                                    Text(
-                                        text = if (itemStatus.reportCount > 0) "${itemStatus.reportCount} reports · ${itemStatus.offlineReports} offline votes"
-                                               else "Official branch amenity",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF64748B)
-                                    )
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = bg,
-                                    border = BorderStroke(1.dp, border)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(textCol)
-                                        )
-                                        Text(
-                                            text = itemStatus.state.label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = textCol
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // "Report Service Status" Button (Module 1)
-                Button(
-                    onClick = {
-                        val firstService = branch.servicesStatus.keys.firstOrNull() ?: "GCash Cash-In"
-                        selectedServiceToReport = firstService
-                        showReportSheet = true
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6))
-                ) {
-                    Icon(Icons.Default.Campaign, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Report Service Status (Crowdsource)", fontWeight = FontWeight.Bold, color = Color.White)
-                }
-
-                if (onViewOnMap != null) {
-                    OutlinedButton(
-                        onClick = onViewOnMap,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color(0xFF0084D6))
-                    ) {
-                        Icon(Icons.Default.Map, contentDescription = null, tint = Color(0xFF0084D6), modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("View on Interactive Map", color = Color(0xFF0084D6), fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-
-    // Subdialog: Submit report for a service
-    if (showReportSheet && selectedServiceToReport != null) {
-        Dialog(onDismissRequest = { showReportSheet = false }) {
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White,
-                shadowElevation = 16.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Text(
-                        text = "Report Service Availability",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF0F172A)
-                    )
-                    Text(
-                        text = "Branch: ${branch.name}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
-                    )
-
-                    HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                    Text("Choose Service:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        branch.servicesStatus.keys.forEach { sName ->
-                            val isSel = selectedServiceToReport == sName
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSel) Color(0xFF0084D6) else Color(0xFFF1F5F9),
-                                border = BorderStroke(1.dp, if (isSel) Color(0xFF0084D6) else Color(0xFFCBD5E1)),
-                                modifier = Modifier.clickable { selectedServiceToReport = sName }
+                                color = if (status.isOpen) Color(0xFFECFDF5) else Color(0xFFFEF2F2),
+                                border = BorderStroke(1.dp, if (status.isOpen) Color(0xFFA7F3D0) else Color(0xFFFECACA))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(if (status.isOpen) Color(0xFF16A34A) else Color(0xFFDC2626))
+                                    )
+                                    Text(
+                                        text = status.label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (status.isOpen) Color(0xFF15803D) else Color(0xFFDC2626)
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFEFF6FF),
+                                border = BorderStroke(1.dp, Color(0xFFBFDBFE))
                             ) {
                                 Text(
-                                    text = sName,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    text = "Reach: ${branch.radiusKm} km",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSel) Color.White else Color(0xFF334155)
+                                    color = Color(0xFF0084D6)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                            ) {
+                                Text(
+                                    text = "Brgy. ${CoverageDataStore.getBarangayName(branch.brgyId)}",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF475569)
                                 )
                             }
                         }
                     }
 
-                    Text("Observed Status:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Location & Operating Schedule Box
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        listOf(
-                            Triple(ServiceState.WORKING, Color(0xFF16A34A), "Working"),
-                            Triple(ServiceState.BUSY, Color(0xFFEA580C), "Busy"),
-                            Triple(ServiceState.OFFLINE, Color(0xFFDC2626), "Offline")
-                        ).forEach { (st, col, lbl) ->
-                            val isSel = reportedStateToSubmit == st
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSel) col.copy(alpha = 0.15f) else Color.White,
-                                border = BorderStroke(1.5.dp, if (isSel) col else Color(0xFFCBD5E1)),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { reportedStateToSubmit = st }
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier.padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
+                                Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFF0084D6), modifier = Modifier.size(15.dp))
+                                Text(
+                                    text = "Brgy. ${CoverageDataStore.getBarangayName(branch.brgyId)}, Nasugbu, Batangas",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF334155)
+                                )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color(0xFF0084D6), modifier = Modifier.size(15.dp))
+                                Text(
+                                    text = "Store Hours: ${branch.hours}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF334155)
+                                )
+                            }
+                            if (branch.strategy.isNotBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF0084D6), modifier = Modifier.size(15.dp))
                                     Text(
-                                        text = lbl,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSel) col else Color(0xFF475569)
+                                        text = branch.strategy,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF64748B)
                                     )
                                 }
                             }
                         }
                     }
 
-                    Text(
-                        text = "Auto-Rule: 3 'Offline' user reports automatically change the service badge to OFFLINE on the main map.",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp,
-                        color = Color(0xFF64748B)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { showReportSheet = false },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Cancel", color = Color(0xFF64748B))
-                        }
-                        Button(
-                            onClick = {
-                                selectedServiceToReport?.let { s ->
-                                    onReportService(s, reportedStateToSubmit)
+                    // STORE AMENITIES & FEATURES (if any)
+                    if (branch.attrs.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "Store Amenities 🏪",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                branch.attrs.forEach { attr ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFF1F5F9),
+                                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(11.dp))
+                                            Text(
+                                                text = attr,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color(0xFF334155),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
                                 }
-                                showReportSheet = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6))
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                    // ADMIN-CONTROLLED DYNAMIC SERVICES & PERKS SECTION
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Submit", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(
+                                text = "Available Services & Perks 🌟",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = "Live Verified",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0084D6)
+                            )
+                        }
+                        Text(
+                            text = "Verified live status managed directly by store operations",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+
+                    // Strictly show ONLY services explicitly enabled/toggled by admin for this store ID
+                    val services = branch.servicesStatus
+
+                    if (services.isEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Standard Neighborhood Shopping Ready! 🛒",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E293B)
+                                )
+                                Text(
+                                    text = "Bukas at handang magsilbi ang store para sa iyong pang-araw-araw na grocery essentials.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF64748B),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            services.forEach { (serviceName, itemStatus) ->
+                                val (bg, border, textCol) = when (itemStatus.state) {
+                                    ServiceState.WORKING -> Triple(Color(0xFFDCFCE7), Color(0xFF86EFAC), Color(0xFF15803D)) // Green
+                                    ServiceState.BUSY -> Triple(Color(0xFFFFEDD5), Color(0xFFFDBA74), Color(0xFFC2410C))    // Orange
+                                    ServiceState.OFFLINE -> Triple(Color(0xFFFEE2E2), Color(0xFFFCA5A5), Color(0xFFB91C1C)) // Red
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFFF8FAFC),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = serviceName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF1E293B)
+                                            )
+                                            Text(
+                                                text = "Admin Verified · Active",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontSize = 10.sp,
+                                                color = Color(0xFF64748B)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = bg,
+                                            border = BorderStroke(1.dp, border)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(textCol)
+                                                )
+                                                Text(
+                                                    text = itemStatus.state.label,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = textCol
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (onViewOnMap != null) {
+                        Button(
+                            onClick = onViewOnMap,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084D6)),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        ) {
+                            Icon(Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("I-pin sa Interactive Map 🧭", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

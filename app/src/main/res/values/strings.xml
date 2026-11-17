@@ -13,8 +13,8 @@
     <string name="group_poblacion">Poblacion</string>
     <string name="group_rural_coastal">Rural &amp; Coastal</string>
 
-    <string name="btn_view_coverage_map">View coverage map</string>
-    <string name="btn_test_customer_location">Test Customer Location</string>
+    <string name="btn_view_coverage_map">View Coverage Map</string>
+    <string name="btn_test_customer_location">Check My Location</string>
 
     <string name="location_permission_rationale">Location permission is required to detect stores near you.</string>
     <string name="location_off_or_denied_fallback">Location unavailable or permission denied. Centering on Nasugbu Municipal Center.</string>
@@ -34,12 +34,12 @@
     <string name="coverage_sheet_covered_by">%1$d store(s) cover this point</string>
     <string name="distance_meters">%1$d m away</string>
     <string name="distance_km">%1$.2f km away</string>
-    <string name="service_radius_info">Service Radius: %1$.1f km</string>
+    <string name="service_radius_info">Radius: %1$.1f km</string>
     <string name="customer_pin_label">Customer Location</string>
-    <string name="tap_map_hint">Tip: Tap anywhere on the map to test customer coverage at that point.</string>
+    <string name="tap_map_hint">Tip: Tap anywhere on the map to check store proximity at that point.</string>
 
     <string name="missing_api_key_title">Google Maps API Key Required</string>
-    <string name="missing_api_key_desc">A placeholder API key was detected. To see the Google Map tiles, set MAPS_API_KEY in local.properties.</string>
+    <string name="missing_api_key_desc">API key required. To see the Google Map tiles, set MAPS_API_KEY in local.properties.</string>
     <string name="error_loading_data">Failed to load retail branches or barangay dataset.</string>
 
     <string name="cd_back">Back</string>

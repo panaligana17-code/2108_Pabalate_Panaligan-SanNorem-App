@@ -133,7 +133,7 @@ fun RetailBranchCard(
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
                         ) {
                             Text(
-                                text = "Demo data",
+                                text = "Active Branch",
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 11.sp,
