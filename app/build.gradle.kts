@@ -41,6 +41,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            isReturnDefaultValues = true
         }
     }
 }
@@ -71,7 +72,6 @@ dependencies {
     implementation(libs.osmdroid.android)
     implementation(libs.google.material)
     implementation(libs.androidx.appcompat)
-
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

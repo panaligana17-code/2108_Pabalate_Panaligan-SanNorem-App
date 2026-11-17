@@ -126,15 +126,6 @@
     "addressNote": "Aga, Nasugbu, Batangas"
   },
   {
-    "id": "ALFA-015",
-    "brand": "ALFAMART",
-    "branchName": "Alfamart- Malarutan",
-    "latitude": 14.08124,
-    "longitude": 120.64515,
-    "serviceRadiusKm": 0.5,
-    "addressNote": "Malarutan, Nasugbu, Batangas"
-  },
-  {
     "id": "ALFA-016",
     "brand": "ALFAMART",
     "branchName": "Alfamart kaylaway Nasugbu",
@@ -252,15 +243,6 @@
     "longitude": 120.63068479299545,
     "serviceRadiusKm": 0.6,
     "addressNote": "Roxaco, Nasugbu, Batangas"
-  },
-  {
-    "id": "SEVN-002",
-    "brand": "SEVEN_ELEVEN",
-    "branchName": "7-Eleven (JP Laurel St)",
-    "latitude": 14.07209,
-    "longitude": 120.63088,
-    "serviceRadiusKm": 0.6,
-    "addressNote": "J.P. Laurel St., Nasugbu, Batangas"
   },
   {
     "id": "SEVN-003",

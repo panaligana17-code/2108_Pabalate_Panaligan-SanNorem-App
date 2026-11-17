@@ -24,7 +24,7 @@ class CoverageMapViewModel(
     initialLng: Double,
     title: String,
     isApproximate: Boolean,
-    isCustomerTest: Boolean,
+    isCustomerLocation: Boolean,
     isMapsApiKeyMissing: Boolean
 ) : ViewModel() {
 
@@ -40,7 +40,7 @@ class CoverageMapViewModel(
 
     init {
         loadData(initialLat, initialLng, title)
-        if (isCustomerTest) {
+        if (isCustomerLocation) {
             setCustomerLocation(LatLng(initialLat, initialLng))
         }
     }
@@ -193,7 +193,7 @@ class CoverageMapViewModel(
             initialLng: Double,
             title: String,
             isApproximate: Boolean,
-            isCustomerTest: Boolean,
+            isCustomerLocation: Boolean,
             isMapsApiKeyMissing: Boolean
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -206,7 +206,7 @@ class CoverageMapViewModel(
                     initialLng,
                     title,
                     isApproximate,
-                    isCustomerTest,
+                    isCustomerLocation,
                     isMapsApiKeyMissing
                 ) as T
             }

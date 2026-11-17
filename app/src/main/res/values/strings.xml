@@ -14,7 +14,7 @@
     <string name="group_rural_coastal">Rural &amp; Coastal</string>
 
     <string name="btn_view_coverage_map">View Coverage Map</string>
-    <string name="btn_test_customer_location">Check My Location</string>
+    <string name="btn_check_customer_location">Check My Location</string>
 
     <string name="location_permission_rationale">Location permission is required to detect stores near you.</string>
     <string name="location_off_or_denied_fallback">Location unavailable or permission denied. Centering on Nasugbu Municipal Center.</string>

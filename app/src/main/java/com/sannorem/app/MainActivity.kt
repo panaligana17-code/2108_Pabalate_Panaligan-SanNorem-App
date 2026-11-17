@@ -19,10 +19,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
@@ -148,6 +153,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.util.Log
 import android.widget.Toast
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -424,7 +430,7 @@ class AuthManager(context: Context) {
 }
 
 // ======================================================================================
-// 3. DATA ENGINE: EXACT 31 OFFICIAL STORE BRANCHES & NASUGBU BARANGAYS
+// 3. DATA ENGINE: EXACT 29 OFFICIAL STORE BRANCHES & NASUGBU BARANGAYS
 // ======================================================================================
 
 object CoverageDataStore {
@@ -510,7 +516,7 @@ object CoverageDataStore {
     // Exact branches provided by user with high precision coordinates
     val branches: List<CoverageBranch> by lazy {
         listOf(
-            // === ALFAMART BRANCHES (16) ===
+            // === ALFAMART BRANCHES (15) ===
             CoverageBranch(
                 id = "ALFA-001",
                 brand = CoverageBrand.ALFAMART,
@@ -694,19 +700,6 @@ object CoverageDataStore {
                 strategy = "Tagaytay-Nasugbu Highway Aga retail station."
             ),
             CoverageBranch(
-                id = "ALFA-015",
-                brand = CoverageBrand.ALFAMART,
-                name = "Alfamart- Malarutan",
-                brgyId = "malarutan",
-                lat = 14.08124,
-                lng = 120.64515,
-                radiusKm = 0.8,
-                hours = "6:00 AM - 10:00 PM",
-                isVerified = true,
-                attrs = listOf("Neighborhood Grocery", "Daily Household Goods", "Drinks"),
-                strategy = "Malarutan eastern border shopping neighborhood access."
-            ),
-            CoverageBranch(
                 id = "ALFA-016",
                 brand = CoverageBrand.ALFAMART,
                 name = "Alfamart kaylaway Nasugbu",
@@ -865,7 +858,7 @@ object CoverageDataStore {
                 strategy = "Kaylaway mountain corridor daily grocery market."
             ),
 
-            // === 7-ELEVEN BRANCHES (4) ===
+            // === 7-ELEVEN BRANCHES (3) ===
             CoverageBranch(
                 id = "SEVN-001",
                 brand = CoverageBrand.SEVEN_ELEVEN,
@@ -878,19 +871,6 @@ object CoverageDataStore {
                 isVerified = true,
                 attrs = listOf("24/7 Operations", "CLiQQ Digital Kiosk & Bill Pay", "ATM Machine"),
                 strategy = "Flagship 24/7 neighborhood store at Roxaco Landing corridor."
-            ),
-            CoverageBranch(
-                id = "SEVN-002",
-                brand = CoverageBrand.SEVEN_ELEVEN,
-                name = "7-Eleven (JP Laurel St)",
-                brgyId = "brgy-1",
-                lat = 14.07209,
-                lng = 120.63088,
-                radiusKm = 0.6,
-                hours = "24/7",
-                isVerified = true,
-                attrs = listOf("24/7 Quick Service", "Hot Food & Meals", "Chilled Beverages"),
-                strategy = "Prime downtown walking neighborhood access along J.P. Laurel."
             ),
             CoverageBranch(
                 id = "SEVN-003",
@@ -1101,6 +1081,7 @@ object CoverageDataStore {
             }
             activeBranches.addAll(initialConfigured)
         }
+        activeBranches.removeAll { it.id == "ALFA-015" || it.id == "SEVN-002" }
 
         if (serviceReports.isEmpty()) {
             serviceReports.add(
@@ -1177,6 +1158,10 @@ object CoverageDataStore {
         }
     }
 
+    fun setEmergencyBroadcast(broadcast: EmergencyBroadcast) {
+        emergencyBroadcast.value = broadcast
+    }
+
     // Emergency and Operating Hours Evaluation
     fun isBranchEffectivelyOpen(branch: CoverageBranch): Boolean {
         val broadcast = emergencyBroadcast.value
@@ -1248,9 +1233,9 @@ object CoverageDataStore {
         activeBranches[idx] = branch.copy(servicesStatus = currentMap)
 
         return if (newOffline >= 3) {
-            "Naitala ang ulat! Awtomatikong naging OFFLINE ang $serviceName dahil sa 3 sunod-sunod na offline reports."
+            "Report recorded! $serviceName automatically marked as OFFLINE due to 3 consecutive offline reports."
         } else {
-            "Salamat! Matagumpay na naitala ang iyong ulat ukol sa $serviceName."
+            "Thank you! Your report regarding $serviceName has been successfully recorded."
         }
     }
 
@@ -1265,11 +1250,12 @@ object CoverageDataStore {
             val branch = activeBranches[idx]
             val currentMap = branch.servicesStatus.toMutableMap()
             val curr = currentMap[serviceName] ?: ServiceItemStatus()
-            currentMap[serviceName] = curr.copy(
+            val updatedItem = curr.copy(
                 state = newState,
                 offlineReports = if (newState == ServiceState.WORKING) 0 else curr.offlineReports,
                 lastUpdated = System.currentTimeMillis()
             )
+            currentMap[serviceName] = updatedItem
             activeBranches[idx] = branch.copy(servicesStatus = currentMap)
         }
     }
@@ -1353,7 +1339,8 @@ object CoverageDataStore {
         val idx = activeBranches.indexOfFirst { it.id == branchId }
         if (idx != -1) {
             val b = activeBranches[idx]
-            activeBranches[idx] = b.copy(attrs = newAttrs.distinct())
+            val distinctAttrs = newAttrs.distinct()
+            activeBranches[idx] = b.copy(attrs = distinctAttrs)
         }
     }
 
@@ -1362,7 +1349,8 @@ object CoverageDataStore {
         if (idx != -1) {
             val b = activeBranches[idx]
             if (!b.attrs.contains(tag)) {
-                activeBranches[idx] = b.copy(attrs = b.attrs + tag)
+                val newAttrs = b.attrs + tag
+                activeBranches[idx] = b.copy(attrs = newAttrs)
             }
         }
     }
@@ -1371,7 +1359,8 @@ object CoverageDataStore {
         val idx = activeBranches.indexOfFirst { it.id == branchId }
         if (idx != -1) {
             val b = activeBranches[idx]
-            activeBranches[idx] = b.copy(attrs = b.attrs.filter { it != tag })
+            val newAttrs = b.attrs.filter { it != tag }
+            activeBranches[idx] = b.copy(attrs = newAttrs)
         }
     }
 
@@ -1380,7 +1369,8 @@ object CoverageDataStore {
         if (idx != -1) {
             val b = activeBranches[idx]
             val newMap = b.servicesStatus.toMutableMap()
-            newMap[serviceName] = ServiceItemStatus(state = state, lastUpdated = System.currentTimeMillis())
+            val updatedItem = ServiceItemStatus(state = state, lastUpdated = System.currentTimeMillis())
+            newMap[serviceName] = updatedItem
             activeBranches[idx] = b.copy(servicesStatus = newMap)
         }
     }
@@ -1603,30 +1593,36 @@ fun SanNoremMainController(
         isSplashDone = true
     }
 
-    if (!isSplashDone) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0084D6)),
-            contentAlignment = Alignment.Center
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 8.dp,
-                modifier = Modifier.size(96.dp)
+    Crossfade(
+        targetState = isSplashDone,
+        animationSpec = tween(400, easing = FastOutSlowInEasing),
+        label = "SplashToAuthTransition"
+    ) { done ->
+        if (!done) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0084D6)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(12.dp)) {
-                    SanNoremLogo(modifier = Modifier.fillMaxSize())
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.size(96.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(12.dp)) {
+                        SanNoremLogo(modifier = Modifier.fillMaxSize())
+                    }
                 }
             }
+        } else {
+            AuthScreen(
+                authManager = authManager,
+                onAuthSuccess = onUserLoginSuccess,
+                onOpenAdminPortal = onOpenAdminPortal
+            )
         }
-    } else {
-        AuthScreen(
-            authManager = authManager,
-            onAuthSuccess = onUserLoginSuccess,
-            onOpenAdminPortal = onOpenAdminPortal
-        )
     }
 }
 
@@ -1780,7 +1776,9 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = tween(300, easing = FastOutSlowInEasing)),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -2113,7 +2111,7 @@ fun OnboardingTutorialDialog(
                 when (step) {
                     0 -> {
                         Text(
-                            text = "Maligayang Pagdating sa San Norem!",
+                            text = "Welcome to San Norem!",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
@@ -2121,7 +2119,7 @@ fun OnboardingTutorialDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Explore the complete retail neighborhood store network of Nasugbu, Batangas. We track 31 verified official branches across 16 Alfamart, 11 DALI Everyday Grocery, and 4 7-Eleven locations.",
+                            text = "Explore the complete retail neighborhood store network of Nasugbu, Batangas. We track 29 verified official branches across 15 Alfamart, 11 DALI Everyday Grocery, and 3 7-Eleven locations.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xFF475569),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -2513,13 +2511,13 @@ fun SanNoremDashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Mag-ikot at alamin kung aling neighborhood store ang pinakamalapit sa iyo! 🛵",
+                                text = "Explore and discover which neighborhood store is nearest to you! 🛵",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF64748B)
                             )
                         }
 
-                        // Prominent "May malapit kaya?" Button Feature (Consistent Blue Styling)
+                        // Prominent "May Malapit Kaya?" Button Feature (Consistent Blue Styling)
                         Button(
                             onClick = { onMayMalapitKayaClicked() },
                             modifier = Modifier
@@ -2537,7 +2535,7 @@ fun SanNoremDashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "May malapit kaya? Hanapin Na! 🔍",
+                                text = "May Malapit Kaya?",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White
@@ -2833,7 +2831,7 @@ fun SanNoremDashboardScreen(
                         color = Color(0xFF64748B)
                     )
                     Text(
-                        text = "Complete neighborhood store network across Nasugbu, Batangas. Tap 'Services' para sa live GCash/ATM status, o i-pin sa mapa! 🧭",
+                        text = "Complete neighborhood store network across Nasugbu, Batangas. Tap 'Services' for live GCash/ATM status, or pin on map! 🧭",
                         style = MaterialTheme.typography.bodySmall,
                         fontSize = 12.sp,
                         color = Color(0xFF94A3B8)
@@ -3536,7 +3534,7 @@ fun BlueThemedCoverageMapModal(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isMayMalapitKaya) "May Malapit Kaya? Heto ang Sagot! 📍"
+                    text = if (isMayMalapitKaya) "May Malapit Kaya? Here Are The Stores! 📍"
                            else if (selectedBarangayId != "ALL") "${CoverageDataStore.getBarangayName(selectedBarangayId)} GIS Boundary"
                            else "Nasugbu Store Network Map 🗺️",
                     style = MaterialTheme.typography.titleMedium,
@@ -3546,11 +3544,11 @@ fun BlueThemedCoverageMapModal(
                 Text(
                     text = if (selectedBarangayId != "ALL") {
                         val brgyName = CoverageDataStore.getBarangayName(selectedBarangayId)
-                        "${branchesToDisplay.size} tindahan · $totalOpenCount Bukas, $totalClosedCount Sarado sa $brgyName"
+                        "${branchesToDisplay.size} stores · $totalOpenCount Open, $totalClosedCount Closed in $brgyName"
                     } else if (isMayMalapitKaya) {
-                        "Live location detected · Pinakamalapit na Alfamart, DALI, at 7-Eleven sa paligid mo! 🛵"
+                        "Live location detected · Closest Alfamart, DALI, and 7-Eleven around you! 🛵"
                     } else {
-                        "${branchesToDisplay.size} tindahan · $totalOpenCount Bukas, $totalClosedCount Sarado sa buong Nasugbu"
+                        "${branchesToDisplay.size} stores · $totalOpenCount Open, $totalClosedCount Closed across Nasugbu"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
@@ -3597,9 +3595,9 @@ fun BlueThemedCoverageMapModal(
                         )
                         Text(
                             text = when (statusFilter) {
-                                StoreStatusFilter.ALL -> "Lahat (${branchesToDisplay.size})"
-                                StoreStatusFilter.OPEN_ONLY -> "Bukas Lang ($totalOpenCount) 🟢"
-                                StoreStatusFilter.CLOSED_ONLY -> "Sarado Muna ($totalClosedCount) 🌙"
+                                StoreStatusFilter.ALL -> "All (${branchesToDisplay.size})"
+                                StoreStatusFilter.OPEN_ONLY -> "Open Only ($totalOpenCount) 🟢"
+                                StoreStatusFilter.CLOSED_ONLY -> "Closed for Now ($totalClosedCount) 🌙"
                             },
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.ExtraBold,
@@ -3861,7 +3859,7 @@ fun BlueThemedCoverageMapModal(
                         customerLocation?.let { loc ->
                             val userMarker = Marker(map).apply {
                                 position = loc
-                                title = if (isMayMalapitKaya) "Ang Iyong Lokasyon" else "Selected Location"
+                                title = if (isMayMalapitKaya) "Your Location" else "Selected Location"
                                 snippet = "Scanning nearby branches..."
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                                 icon = customerPinDrawable
@@ -3915,7 +3913,7 @@ fun BlueThemedCoverageMapModal(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = "I-tap ang mapa o pin para makita ang suki stores! 🛵",
+                                text = "Tap the map or pin to see nearby stores! 🛵",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
@@ -4084,8 +4082,8 @@ fun BlueThemedCoverageMapModal(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = if (isMayMalapitKaya) "Pinakamalapit na Suki Stores sa Iyo 🛵"
-                                               else "Mga Suki Stores sa Paligid 🛍️",
+                                        text = if (isMayMalapitKaya) "Nearest Stores to You 🛵"
+                                               else "Nearby Stores 🛍️",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0F172A)
@@ -4103,7 +4101,7 @@ fun BlueThemedCoverageMapModal(
 
                             if (displayCoveringResults.isEmpty()) {
                                 Text(
-                                    text = "Walang branch na tumutugma sa napiling filter sa lokasyong ito.",
+                                    text = "No branches match the selected filter at this location.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFF64748B),
                                     modifier = Modifier.padding(vertical = 8.dp)
@@ -4200,9 +4198,9 @@ fun BlueThemedCoverageMapModal(
                                 modifier = Modifier.size(28.dp)
                             )
                             Text(
-                                text = if (statusFilter == StoreStatusFilter.CLOSED_ONLY) "Walang saradong tindahan sa oras na ito!"
-                                       else if (statusFilter == StoreStatusFilter.OPEN_ONLY) "Walang bukas na tindahan sa kasalukuyan."
-                                       else "Walang tindahang tumutugma sa filter.",
+                                text = if (statusFilter == StoreStatusFilter.CLOSED_ONLY) "No closed stores at this time!"
+                                       else if (statusFilter == StoreStatusFilter.OPEN_ONLY) "No open stores at present."
+                                       else "No stores match the filter.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A),
@@ -4220,7 +4218,7 @@ fun BlueThemedCoverageMapModal(
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                             ) {
-                                Text("Ipakita Lahat (Reset)", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text("Show All (Reset)", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

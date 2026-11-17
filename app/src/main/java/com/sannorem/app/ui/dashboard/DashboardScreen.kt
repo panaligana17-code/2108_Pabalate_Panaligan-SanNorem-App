@@ -83,7 +83,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onNavigateToMap: (lat: Double, lng: Double, name: String, isApproximate: Boolean, isCustomerTest: Boolean) -> Unit
+    onNavigateToMap: (lat: Double, lng: Double, name: String, isApproximate: Boolean, isCustomerLocation: Boolean) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -99,7 +99,7 @@ fun DashboardScreen(
 
     fun proceedWithLocation(lat: Double?, lng: Double?) {
         when (val result = viewModel.evaluateCustomerLocation(lat, lng)) {
-            is LocationTestResult.Success -> {
+            is LocationEvaluationResult.Success -> {
                 onNavigateToMap(
                     result.latitude,
                     result.longitude,
@@ -108,7 +108,7 @@ fun DashboardScreen(
                     true
                 )
             }
-            is LocationTestResult.OutOfBounds -> {
+            is LocationEvaluationResult.OutOfBounds -> {
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(
                         String.format(locationOutOfBoundsTemplate, result.distanceKm)
@@ -122,7 +122,7 @@ fun DashboardScreen(
                     true
                 )
             }
-            is LocationTestResult.Failed -> {
+            is LocationEvaluationResult.Failed -> {
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(locationFallbackMsg)
                 }

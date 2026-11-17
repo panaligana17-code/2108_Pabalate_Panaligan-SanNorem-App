@@ -1845,7 +1845,7 @@ fun AdminEmergencyOverrideTab() {
                         if (currentBroadcast.isActive) {
                             OutlinedButton(
                                 onClick = {
-                                    CoverageDataStore.emergencyBroadcast.value = EmergencyBroadcast(isActive = false)
+                                    CoverageDataStore.setEmergencyBroadcast(EmergencyBroadcast(isActive = false))
                                     Toast.makeText(context, "Emergency broadcast deactivated.", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f),
@@ -1866,7 +1866,7 @@ fun AdminEmergencyOverrideTab() {
                                     affectedBrands = if (affectedBrand == null) emptyList() else listOf(affectedBrand!!),
                                     isTemporaryClosedOverride = isOverrideClosed
                                 )
-                                CoverageDataStore.emergencyBroadcast.value = newBc
+                                CoverageDataStore.setEmergencyBroadcast(newBc)
                                 Toast.makeText(context, "Broadcast published! Override active.", Toast.LENGTH_LONG).show()
                             },
                             modifier = Modifier.weight(1.5f),

@@ -28,16 +28,16 @@ import com.sannorem.app.ui.map.isGoogleMapsApiKeyMissing
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Dashboard : Screen("dashboard")
-    data object CoverageMap : Screen("coverage_map/{lat}/{lng}/{name}/{isApproximate}/{isCustomerTest}") {
+    data object CoverageMap : Screen("coverage_map/{lat}/{lng}/{name}/{isApproximate}/{isCustomerLocation}") {
         fun createRoute(
             lat: Double,
             lng: Double,
             name: String,
             isApproximate: Boolean,
-            isCustomerTest: Boolean
+            isCustomerLocation: Boolean
         ): String {
             val encodedName = Uri.encode(name)
-            return "coverage_map/$lat/$lng/$encodedName/$isApproximate/$isCustomerTest"
+            return "coverage_map/$lat/$lng/$encodedName/$isApproximate/$isCustomerLocation"
         }
     }
 }
@@ -109,14 +109,14 @@ fun SanNoremNavHost(
 
             DashboardScreen(
                 viewModel = dashboardViewModel,
-                onNavigateToMap = { lat, lng, name, isApproximate, isCustomerTest ->
+                onNavigateToMap = { lat, lng, name, isApproximate, isCustomerLocation ->
                     navController.navigate(
                         Screen.CoverageMap.createRoute(
                             lat = lat,
                             lng = lng,
                             name = name,
                             isApproximate = isApproximate,
-                            isCustomerTest = isCustomerTest
+                            isCustomerLocation = isCustomerLocation
                         )
                     )
                 }
@@ -130,7 +130,7 @@ fun SanNoremNavHost(
                 navArgument("lng") { type = NavType.StringType },
                 navArgument("name") { type = NavType.StringType },
                 navArgument("isApproximate") { type = NavType.BoolType },
-                navArgument("isCustomerTest") { type = NavType.BoolType }
+                navArgument("isCustomerLocation") { type = NavType.BoolType }
             ),
             enterTransition = {
                 slideIntoContainer(
@@ -150,7 +150,7 @@ fun SanNoremNavHost(
             val rawName = backStackEntry.arguments?.getString("name") ?: "Nasugbu"
             val name = Uri.decode(rawName)
             val isApproximate = backStackEntry.arguments?.getBoolean("isApproximate") ?: false
-            val isCustomerTest = backStackEntry.arguments?.getBoolean("isCustomerTest") ?: false
+            val isCustomerLocation = backStackEntry.arguments?.getBoolean("isCustomerLocation") ?: false
 
             val lat = latStr.toDoubleOrNull() ?: 14.0734
             val lng = lngStr.toDoubleOrNull() ?: 120.6315
@@ -165,7 +165,7 @@ fun SanNoremNavHost(
                     initialLng = lng,
                     title = name,
                     isApproximate = isApproximate,
-                    isCustomerTest = isCustomerTest,
+                    isCustomerLocation = isCustomerLocation,
                     isMapsApiKeyMissing = isApiKeyMissing
                 )
             )

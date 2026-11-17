@@ -86,7 +86,7 @@ class CoverageMapViewModelTest {
             initialLng = 120.6315,
             title = "Barangay 1",
             isApproximate = false,
-            isCustomerTest = false,
+            isCustomerLocation = false,
             isMapsApiKeyMissing = false
         )
 
@@ -112,7 +112,7 @@ class CoverageMapViewModelTest {
             initialLng = 120.6315,
             title = "Barangay 1",
             isApproximate = false,
-            isCustomerTest = false,
+            isCustomerLocation = false,
             isMapsApiKeyMissing = false
         )
 
@@ -140,7 +140,7 @@ class CoverageMapViewModelTest {
             initialLng = 120.6315,
             title = "Barangay 1",
             isApproximate = false,
-            isCustomerTest = false,
+            isCustomerLocation = false,
             isMapsApiKeyMissing = false
         )
 

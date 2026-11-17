@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -380,9 +381,9 @@ fun BarangayCoverageCard(
 
             Text(
                 text = when (analytics.status) {
-                    "Well-Served" -> "Mataas ang retail density sa barangay na ito. Madaling marating ang mga tindahan mula sa komunidad."
-                    "Moderate" -> "May 1-2 aktibong sangay. Sapat para sa pangunahing grocery ngunit bukas sa karagdagang neighborhood stores."
-                    else -> "Underserved: Walang aktibong sangay sa loob ng boundary polygon na ito. Pangunahing target para sa Store Request."
+                    "Well-Served" -> "High retail density in this barangay. Stores are easily accessible from the community."
+                    "Moderate" -> "1-2 active branches. Sufficient for essential groceries, but open to additional neighborhood stores."
+                    else -> "Underserved: No active branch within this boundary polygon. Primary target for store requests."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 fontSize = 11.sp,
@@ -801,6 +802,8 @@ fun BranchDetailsModal(
 ) {
     val status = CoverageDataStore.getEffectiveStatusDetails(branch)
     val brandColor = Color(branch.brand.hexColor)
+    var reportingService by remember { mutableStateOf<String?>(null) }
+    var reportFeedbackMessage by remember { mutableStateOf<String?>(null) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1125,7 +1128,7 @@ fun BranchDetailsModal(
                                     color = Color(0xFF1E293B)
                                 )
                                 Text(
-                                    text = "Bukas at handang magsilbi ang store para sa iyong pang-araw-araw na grocery essentials.",
+                                    text = "Store is open and ready to serve your daily grocery essentials.",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color(0xFF64748B),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -1142,58 +1145,192 @@ fun BranchDetailsModal(
                                 }
 
                                 Surface(
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     color = Color(0xFFF8FAFC),
                                     border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = serviceName,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF1E293B)
-                                            )
-                                            Text(
-                                                text = "Admin Verified · Active",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 10.sp,
-                                                color = Color(0xFF64748B)
-                                            )
-                                        }
-
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = bg,
-                                            border = BorderStroke(1.dp, border)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(6.dp)
-                                                        .clip(CircleShape)
-                                                        .background(textCol)
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = serviceName,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color(0xFF1E293B)
                                                 )
                                                 Text(
-                                                    text = itemStatus.state.label,
+                                                    text = "Community & Admin Monitored",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = textCol
+                                                    fontSize = 10.sp,
+                                                    color = Color(0xFF64748B)
                                                 )
+                                            }
+
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = bg,
+                                                border = BorderStroke(1.dp, border)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(6.dp)
+                                                            .clip(CircleShape)
+                                                            .background(textCol)
+                                                    )
+                                                    Text(
+                                                        text = itemStatus.state.label,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = textCol
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Interactive "Report Status" Button & Picker Action
+                                        if (reportingService == serviceName) {
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = Color(0xFFEFF6FF),
+                                                border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.padding(8.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "Select current condition for $serviceName:",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF1E3A8A)
+                                                    )
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        // Working
+                                                        Button(
+                                                            onClick = {
+                                                                onReportService(serviceName, ServiceState.WORKING)
+                                                                reportingService = null
+                                                                reportFeedbackMessage = "Reported: $serviceName is Working"
+                                                            },
+                                                            modifier = Modifier.weight(1f).height(32.dp),
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                                            shape = RoundedCornerShape(6.dp),
+                                                            contentPadding = PaddingValues(0.dp)
+                                                        ) {
+                                                            Text("Working", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                        }
+                                                        // Busy
+                                                        Button(
+                                                            onClick = {
+                                                                onReportService(serviceName, ServiceState.BUSY)
+                                                                reportingService = null
+                                                                reportFeedbackMessage = "Reported: $serviceName has long queue / busy"
+                                                            },
+                                                            modifier = Modifier.weight(1f).height(32.dp),
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C)),
+                                                            shape = RoundedCornerShape(6.dp),
+                                                            contentPadding = PaddingValues(0.dp)
+                                                        ) {
+                                                            Text("Busy", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                        }
+                                                        // Offline
+                                                        Button(
+                                                            onClick = {
+                                                                onReportService(serviceName, ServiceState.OFFLINE)
+                                                                reportingService = null
+                                                                reportFeedbackMessage = "Reported: $serviceName is Offline"
+                                                            },
+                                                            modifier = Modifier.weight(1f).height(32.dp),
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                                            shape = RoundedCornerShape(6.dp),
+                                                            contentPadding = PaddingValues(0.dp)
+                                                        ) {
+                                                            Text("Offline", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                OutlinedButton(
+                                                    onClick = { reportingService = serviceName },
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                    modifier = Modifier.height(28.dp),
+                                                    border = BorderStroke(1.dp, Color(0xFF0084D6))
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Campaign,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF0084D6),
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "Report Status",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF0084D6)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // Temporary user feedback message after reporting
+                    reportFeedbackMessage?.let { msg ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFECFDF5),
+                            border = BorderStroke(1.dp, Color(0xFFA7F3D0)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(14.dp))
+                                    Text(text = msg, style = MaterialTheme.typography.labelSmall, color = Color(0xFF15803D), fontWeight = FontWeight.Medium)
+                                }
+                                IconButton(
+                                    onClick = { reportFeedbackMessage = null },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = Color(0xFF15803D), modifier = Modifier.size(12.dp))
                                 }
                             }
                         }
@@ -1211,7 +1348,7 @@ fun BranchDetailsModal(
                         ) {
                             Icon(Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("I-pin sa Interactive Map 🧭", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Pin on Interactive Map 🧭", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

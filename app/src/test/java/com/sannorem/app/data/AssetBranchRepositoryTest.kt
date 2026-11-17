@@ -24,13 +24,13 @@ class AssetBranchRepositoryTest {
     }
 
     @Test
-    fun getBranches_hasExactly31BranchesWithUniqueIds() {
+    fun getBranches_hasExactly29BranchesWithUniqueIds() {
         val branches = repository.getBranches()
 
-        assertEquals("There must be exactly 31 branches in the dataset", 31, branches.size)
+        assertEquals("There must be exactly 29 branches in the dataset", 29, branches.size)
 
         val uniqueIds = branches.map { it.id }.toSet()
-        assertEquals("All 31 branches must have unique IDs", 31, uniqueIds.size)
+        assertEquals("All 29 branches must have unique IDs", 29, uniqueIds.size)
     }
 
     @Test
@@ -42,8 +42,8 @@ class AssetBranchRepositoryTest {
         val alfamartCount = branches.count { it.brand == Brand.ALFAMART }
 
         assertEquals(11, daliCount)
-        assertEquals(4, sevenElevenCount)
-        assertEquals(16, alfamartCount)
+        assertEquals(3, sevenElevenCount)
+        assertEquals(15, alfamartCount)
     }
 
     @Test

@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-sealed interface LocationTestResult {
-    data class Success(val latitude: Double, val longitude: Double) : LocationTestResult
-    data class OutOfBounds(val latitude: Double, val longitude: Double, val distanceKm: Double) : LocationTestResult
-    data class Failed(val fallbackLat: Double = GeoUtils.NASUGBU_CENTER_LAT, val fallbackLng: Double = GeoUtils.NASUGBU_CENTER_LNG) : LocationTestResult
+sealed interface LocationEvaluationResult {
+    data class Success(val latitude: Double, val longitude: Double) : LocationEvaluationResult
+    data class OutOfBounds(val latitude: Double, val longitude: Double, val distanceKm: Double) : LocationEvaluationResult
+    data class Failed(val fallbackLat: Double = GeoUtils.NASUGBU_CENTER_LAT, val fallbackLng: Double = GeoUtils.NASUGBU_CENTER_LNG) : LocationEvaluationResult
 }
 
 class DashboardViewModel(
@@ -98,9 +98,9 @@ class DashboardViewModel(
         }
     }
 
-    fun evaluateCustomerLocation(lat: Double?, lng: Double?): LocationTestResult {
+    fun evaluateCustomerLocation(lat: Double?, lng: Double?): LocationEvaluationResult {
         if (lat == null || lng == null) {
-            return LocationTestResult.Failed()
+            return LocationEvaluationResult.Failed()
         }
 
         val distanceKm = GeoUtils.haversineKm(
@@ -111,13 +111,13 @@ class DashboardViewModel(
         )
 
         return if (distanceKm > GeoUtils.NASUGBU_MAX_TEST_DISTANCE_KM) {
-            LocationTestResult.OutOfBounds(
+            LocationEvaluationResult.OutOfBounds(
                 latitude = GeoUtils.NASUGBU_CENTER_LAT,
                 longitude = GeoUtils.NASUGBU_CENTER_LNG,
                 distanceKm = distanceKm
             )
         } else {
-            LocationTestResult.Success(latitude = lat, longitude = lng)
+            LocationEvaluationResult.Success(latitude = lat, longitude = lng)
         }
     }
 
