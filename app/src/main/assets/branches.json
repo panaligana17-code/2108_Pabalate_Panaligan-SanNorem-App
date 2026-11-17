@@ -1,0 +1,283 @@
+[
+  {
+    "id": "ALFA-001",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Brgy. Wawa-Nasugbu",
+    "latitude": 14.079430116291613,
+    "longitude": 120.62645494937897,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Brgy. Wawa, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-002",
+    "brand": "ALFAMART",
+    "branchName": "Alfa Mart Poblacion 2 Nasugbu",
+    "latitude": 14.077562867377686,
+    "longitude": 120.63103637469676,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Poblacion 2, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-003",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart JP Laurel",
+    "latitude": 14.066749400925646,
+    "longitude": 120.63350915908813,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "J.P. Laurel St., Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-004",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart wawa 3 nasugbu Batangas",
+    "latitude": 14.081798204519972,
+    "longitude": 120.62485956623685,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Wawa 3, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-005",
+    "brand": "ALFAMART",
+    "branchName": "ALFAMART POBLACION II 2 NASUGBU",
+    "latitude": 14.075173451483145,
+    "longitude": 120.63237108026938,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Poblacion II, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-006",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart poblacion 5 Nasugbu",
+    "latitude": 14.073274567607854,
+    "longitude": 120.63717842102051,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Poblacion 5, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-007",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Poblacion XI Nasugbu",
+    "latitude": 14.062516268568622,
+    "longitude": 120.63415825366974,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Poblacion 11, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-008",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart bucana",
+    "latitude": 14.06774587981612,
+    "longitude": 120.62840223312378,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Bucana, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-009",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart F Alix Margarita Pob 7",
+    "latitude": 14.06845,
+    "longitude": 120.63440795030462,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "F. Alix St., Margarita, Poblacion 7, Nasugbu"
+  },
+  {
+    "id": "ALFA-010",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Wawa2-Nasugbu",
+    "latitude": 14.07489802511803,
+    "longitude": 120.62558054924011,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Wawa 2, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-011",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Poblacion 7 Nasugbu",
+    "latitude": 14.06736341976332,
+    "longitude": 120.63551008701324,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Poblacion 7, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-012",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Looc Nasugbu",
+    "latitude": 14.163442205968872,
+    "longitude": 120.62861144542694,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Looc, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-013",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Calayo Nasugbu",
+    "latitude": 14.153219731300032,
+    "longitude": 120.60905621085229,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Calayo, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-014",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart Aga 2",
+    "latitude": 14.095996719918537,
+    "longitude": 120.79551458358765,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Aga, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-015",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart- Malarutan",
+    "latitude": 14.08124,
+    "longitude": 120.64515,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Malarutan, Nasugbu, Batangas"
+  },
+  {
+    "id": "ALFA-016",
+    "brand": "ALFAMART",
+    "branchName": "Alfamart kaylaway Nasugbu",
+    "latitude": 14.057659028070338,
+    "longitude": 120.84481428043486,
+    "serviceRadiusKm": 0.5,
+    "addressNote": "Kaylaway, Nasugbu, Batangas"
+  },
+
+  {
+    "id": "DALI-001",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Wawa",
+    "latitude": 14.079841174075316,
+    "longitude": 120.62605798244476,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Wawa, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-002",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Pob. 2",
+    "latitude": 14.078095474211151,
+    "longitude": 120.63041925430298,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Poblacion 2, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-003",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu Sentro",
+    "latitude": 14.072712598859823,
+    "longitude": 120.63315510749817,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Sentro, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-004",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Bucana",
+    "latitude": 14.06755595075422,
+    "longitude": 120.62853366136551,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Bucana, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-005",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Pob. 1",
+    "latitude": 14.073727263650012,
+    "longitude": 120.63128963112831,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Poblacion 1, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-006",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Pob. 11",
+    "latitude": 14.063132889472277,
+    "longitude": 120.6342452306014,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Poblacion 11, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-007",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Balaytigui",
+    "latitude": 14.12875559223731,
+    "longitude": 120.60835544159588,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Balaytigui, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-008",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Looc",
+    "latitude": 14.164768546010613,
+    "longitude": 120.62926054000854,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Looc, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-009",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Dayap",
+    "latitude": 14.093811226533436,
+    "longitude": 120.66421057429544,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Dayap, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-010",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Aga",
+    "latitude": 14.095746981051162,
+    "longitude": 120.79403400421143,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Aga, Nasugbu, Batangas"
+  },
+  {
+    "id": "DALI-011",
+    "brand": "DALI",
+    "branchName": "DALI Everyday Grocery - Nasugbu - Kaylaway",
+    "latitude": 14.075024550532625,
+    "longitude": 120.84010677911007,
+    "serviceRadiusKm": 1.0,
+    "addressNote": "Kaylaway, Nasugbu, Batangas"
+  },
+
+  {
+    "id": "SEVN-001",
+    "brand": "SEVEN_ELEVEN",
+    "branchName": "7-Eleven (3650) Roxaco Nasugbu",
+    "latitude": 14.078199540150706,
+    "longitude": 120.63068479299545,
+    "serviceRadiusKm": 0.6,
+    "addressNote": "Roxaco, Nasugbu, Batangas"
+  },
+  {
+    "id": "SEVN-002",
+    "brand": "SEVEN_ELEVEN",
+    "branchName": "7-Eleven (JP Laurel St)",
+    "latitude": 14.07209,
+    "longitude": 120.63088,
+    "serviceRadiusKm": 0.6,
+    "addressNote": "J.P. Laurel St., Nasugbu, Batangas"
+  },
+  {
+    "id": "SEVN-003",
+    "brand": "SEVEN_ELEVEN",
+    "branchName": "7-Eleven Bucana Nasugbu",
+    "latitude": 14.06759237551804,
+    "longitude": 120.62841564416885,
+    "serviceRadiusKm": 0.6,
+    "addressNote": "Bucana, Nasugbu, Batangas"
+  },
+  {
+    "id": "SEVN-004",
+    "brand": "SEVEN_ELEVEN",
+    "branchName": "7-Eleven (3359) Nasugbu Arch",
+    "latitude": 14.058257039122788,
+    "longitude": 120.84506839513779,
+    "serviceRadiusKm": 0.6,
+    "addressNote": "Nasugbu Arch, Tagaytay-Nasugbu Hwy, Batangas"
+  }
+]

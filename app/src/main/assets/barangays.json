@@ -1,0 +1,340 @@
+[
+  {
+    "id": "brgy-1",
+    "name": "Barangay 1 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0734,
+    "longitude": 120.6315,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-2",
+    "name": "Barangay 2 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0755,
+    "longitude": 120.6322,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-3",
+    "name": "Barangay 3 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0768,
+    "longitude": 120.6351,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-4",
+    "name": "Barangay 4 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0732,
+    "longitude": 120.6360,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-5",
+    "name": "Barangay 5 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0701,
+    "longitude": 120.6358,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-6",
+    "name": "Barangay 6 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0682,
+    "longitude": 120.6311,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-7",
+    "name": "Barangay 7 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0695,
+    "longitude": 120.6278,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-8",
+    "name": "Barangay 8 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0720,
+    "longitude": 120.6288,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-9",
+    "name": "Barangay 9 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0751,
+    "longitude": 120.6265,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-10",
+    "name": "Barangay 10 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0772,
+    "longitude": 120.6283,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-11",
+    "name": "Barangay 11 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0795,
+    "longitude": 120.6330,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "brgy-12",
+    "name": "Barangay 12 (Poblacion)",
+    "group": "POBLACION",
+    "latitude": 14.0833,
+    "longitude": 120.6375,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "aga",
+    "name": "Aga",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0743,
+    "longitude": 120.7381,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "balaytigui",
+    "name": "Balaytigui",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1378,
+    "longitude": 120.6122,
+    "source": "Updated Nasugbu Dataset",
+    "aliases": ["Balaytigue"]
+  },
+  {
+    "id": "banilad",
+    "name": "Banilad",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0305,
+    "longitude": 120.6865,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "bilaran",
+    "name": "Bilaran",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0478,
+    "longitude": 120.6652,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "bucana",
+    "name": "Bucana",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0931,
+    "longitude": 120.6289,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "bulihan",
+    "name": "Bulihan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1610,
+    "longitude": 120.6558,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "bunducan",
+    "name": "Bunducan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0847,
+    "longitude": 120.7203,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "butucan",
+    "name": "Butucan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1641,
+    "longitude": 120.6720,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "calayo",
+    "name": "Calayo",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1863,
+    "longitude": 120.6094,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "catandaan",
+    "name": "Catandaan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0620,
+    "longitude": 120.7102,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "cogunan",
+    "name": "Cogunan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0255,
+    "longitude": 120.6489,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "dayap",
+    "name": "Dayap",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0886,
+    "longitude": 120.7483,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "kaylaway",
+    "name": "Kaylaway",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0673,
+    "longitude": 120.7852,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "kayrilaw",
+    "name": "Kayrilaw",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1032,
+    "longitude": 120.7120,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "latag",
+    "name": "Latag",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1205,
+    "longitude": 120.6610,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "looc",
+    "name": "Looc",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.2215,
+    "longitude": 120.6331,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "lumbangan",
+    "name": "Lumbangan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0531,
+    "longitude": 120.6425,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "malapad-na-bato",
+    "name": "Malapad na Bato",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0921,
+    "longitude": 120.6885,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "mataas-na-pulo",
+    "name": "Mataas na Pulo",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1054,
+    "longitude": 120.6710,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "maugat",
+    "name": "Maugat",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0792,
+    "longitude": 120.7605,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "munting-indan",
+    "name": "Munting Indan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0831,
+    "longitude": 120.7021,
+    "source": "Updated Nasugbu Dataset",
+    "aliases": ["Munting Indang"]
+  },
+  {
+    "id": "natipuan",
+    "name": "Natipuan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1192,
+    "longitude": 120.6025,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "pantalan",
+    "name": "Pantalan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0645,
+    "longitude": 120.6358,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "papaya",
+    "name": "Papaya",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.2494,
+    "longitude": 120.6133,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "putat",
+    "name": "Putat",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0489,
+    "longitude": 120.7012,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "reparo",
+    "name": "Reparo",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0621,
+    "longitude": 120.6582,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "talangan",
+    "name": "Talangan",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0592,
+    "longitude": 120.7380,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "tumalim",
+    "name": "Tumalim",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0321,
+    "longitude": 120.7225,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "utod",
+    "name": "Utod",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.1042,
+    "longitude": 120.6394,
+    "source": "Updated Nasugbu Dataset"
+  },
+  {
+    "id": "wawa",
+    "name": "Wawa",
+    "group": "RURAL_COASTAL",
+    "latitude": 14.0768,
+    "longitude": 120.6210,
+    "source": "Updated Nasugbu Dataset"
+  }
+]

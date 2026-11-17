@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Solid White Background -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- 4-color branded question mark storefront icon -->
+
+    <!-- Panel 1: Bright Blue (Main Theme) [189° to 144°] -->
+    <path
+        android:fillColor="#0084D6"
+        android:pathData="M 28.32,43.07 A 26,26 0 0,1 32.97,23.72 L 42.67,30.77 A 14,14 0 0,0 40.17,41.19 Z" />
+
+    <!-- Panel 2: Distinct Pink (Dali) [141° to 96°] -->
+    <path
+        android:fillColor="#E91E63"
+        android:pathData="M 33.79,22.64 A 26,26 0 0,1 51.28,13.14 L 52.54,25.08 A 14,14 0 0,0 43.12,30.19 Z" />
+
+    <!-- Panel 3: Vibrant Green (7-Eleven) [93° to 48°] -->
+    <path
+        android:fillColor="#008657"
+        android:pathData="M 52.64,13.04 A 26,26 0 0,1 71.40,19.68 L 63.37,28.60 A 14,14 0 0,0 53.27,25.02 Z" />
+
+    <!-- Panel 4: Bold Red (Alfa / Alfamart) [45° to 0°] -->
+    <path
+        android:fillColor="#ED1C24"
+        android:pathData="M 72.38,20.61 A 26,26 0 0,1 80.00,39.00 L 68.00,39.00 A 14,14 0 0,0 63.90,29.10 Z" />
+
+    <!-- Store Facade / Stem (Bright Blue) -->
+    <path
+        android:fillColor="#0084D6"
+        android:pathData="M 68.00,39.00 L 80.00,39.00 C 80.00,52.00 69.00,56.00 61.00,59.00 L 61.00,68.00 L 47.00,68.00 L 47.00,59.00 C 47.00,52.00 56.00,47.00 68.00,39.00 Z" />
+
+    <!-- Store Display Window on Stem (White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 51.0,59.5 L 57.0,59.5 C 57.8,59.5 58.5,60.2 58.5,61.0 L 58.5,65.0 C 58.5,65.8 57.8,66.5 57.0,66.5 L 51.0,66.5 C 50.2,66.5 49.5,65.8 49.5,65.0 L 49.5,61.0 C 49.5,60.2 50.2,59.5 51.0,59.5 Z" />
+
+    <!-- Window Pane Mullion Crossbars (Blue) -->
+    <path
+        android:strokeColor="#0084D6"
+        android:strokeWidth="0.8"
+        android:strokeAlpha="0.6"
+        android:pathData="M 54.0,59.5 L 54.0,66.5 M 49.5,63.0 L 58.5,63.0" />
+
+    <!-- Entrance Dot: Base Store Circle (Bright Blue) -->
+    <path
+        android:fillColor="#0084D6"
+        android:pathData="M 54,73 A 7.5,7.5 0 1,1 53.99,73 Z" />
+
+    <!-- Arched Store Door inside Entrance Dot (White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 51.2,86.5 L 51.2,80.6 C 51.2,78.0 56.8,78.0 56.8,80.6 L 56.8,86.5 Z" />
+
+    <!-- Door Handle Knob (Blue) -->
+    <path
+        android:fillColor="#0084D6"
+        android:pathData="M 55.4,82.2 A 0.6,0.6 0 1,1 55.39,82.2 Z" />
+</vector>

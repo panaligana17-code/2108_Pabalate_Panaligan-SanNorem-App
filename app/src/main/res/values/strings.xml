@@ -1,0 +1,61 @@
+<resources>
+    <string name="app_name">SanNorem</string>
+    <string name="app_tagline">Nasugbu Retail Coverage Explorer</string>
+    <string name="hero_title">Which stores serve your area?</string>
+    <string name="hero_subtitle">Explore branch coverage for DALI Everyday Grocery, 7-Eleven, and Alfamart across all 42 barangays in Nasugbu, Batangas.</string>
+
+    <string name="stat_barangays_label">Barangays</string>
+    <string name="stat_branches_label">Branches</string>
+    <string name="stat_brands_label">Brands</string>
+
+    <string name="select_barangay_label">Select Barangay</string>
+    <string name="select_barangay_placeholder">Choose a barangay to check coverage</string>
+    <string name="group_poblacion">Poblacion</string>
+    <string name="group_rural_coastal">Rural &amp; Coastal</string>
+
+    <string name="btn_view_coverage_map">View coverage map</string>
+    <string name="btn_test_customer_location">Test Customer Location</string>
+
+    <string name="location_permission_rationale">Location permission is required to detect stores near you.</string>
+    <string name="location_off_or_denied_fallback">Location unavailable or permission denied. Centering on Nasugbu Municipal Center.</string>
+    <string name="location_out_of_bounds_fallback">You are %1$.1f km away from Nasugbu (outside 20 km limit). Centering on Municipal Center.</string>
+
+    <string name="approximate_center_notice">Approximate center: %1$s has no verified coordinates yet. Using Nasugbu Municipal Center.</string>
+    <string name="back_to_dashboard">Back to Dashboard</string>
+    <string name="map_legend_title">Brand Coverage &amp; Service Radii</string>
+    <string name="filter_brands">Filter Brands</string>
+
+    <string name="brand_dali">DALI Everyday Grocery</string>
+    <string name="brand_seven_eleven">7-Eleven</string>
+    <string name="brand_alfamart">Alfamart</string>
+
+    <string name="coverage_sheet_title">Stores Serving This Location</string>
+    <string name="coverage_sheet_no_coverage">No store service radius reaches this location.</string>
+    <string name="coverage_sheet_covered_by">%1$d store(s) cover this point</string>
+    <string name="distance_meters">%1$d m away</string>
+    <string name="distance_km">%1$.2f km away</string>
+    <string name="service_radius_info">Service Radius: %1$.1f km</string>
+    <string name="customer_pin_label">Customer Location</string>
+    <string name="tap_map_hint">Tip: Tap anywhere on the map to test customer coverage at that point.</string>
+
+    <string name="missing_api_key_title">Google Maps API Key Required</string>
+    <string name="missing_api_key_desc">A placeholder API key was detected. To see the Google Map tiles, set MAPS_API_KEY in local.properties.</string>
+    <string name="error_loading_data">Failed to load retail branches or barangay dataset.</string>
+
+    <string name="cd_back">Back</string>
+    <string name="cd_brand_marker">%1$s - %2$s</string>
+    <string name="cd_customer_marker">Customer Pin</string>
+    <string name="cd_clear_circle">Clear active radius</string>
+
+    <!-- Google Maps Proximity Strings -->
+    <string name="title_select_barangay_nasugbu">Select Barangay (Nasugbu)</string>
+    <string name="filter_status_1_5km">Proximity filter: 1.5 km radius</string>
+    <string name="filter_status_count">Proximity filter: 1.5 km radius • %1$d nearby</string>
+    <string name="btn_close_details">Close Details</string>
+    <string name="default_branch_name">Branch Name</string>
+    <string name="default_branch_address">Nasugbu, Batangas</string>
+    <string name="default_branch_distance">0.0 km away from barangay center</string>
+    <string name="default_branch_coordinates">Coordinates: 0.0° N, 0.0° E</string>
+    <string name="branch_distance_format">%1$.2f km from %2$s</string>
+    <string name="branch_coordinates_format">Coordinates: %1$.4f° N, %2$.4f° E</string>
+</resources>
